@@ -26,180 +26,211 @@ function InvoiceDetail() {
     }
   };
 
-const downloadPDF = async () => {
-  // Get user profile for company info
-  let companyInfo = {};
-  try {
-    const profileResponse = await getProfile();
-    companyInfo = profileResponse.data.user;
-  } catch (error) {
-    console.log('Could not load company info');
-  }
+  const downloadPDF = async () => {
+    if (!invoice) return;
 
-  const doc = new jsPDF();
-
-  // Add blue header bar
-  doc.setFillColor(37, 99, 235);
-  doc.rect(0, 0, 210, 40, 'F');
-
-  // Company name in white
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont(undefined, 'bold');
-  doc.text(companyInfo.companyName || 'Your Company', 20, 20);
-
-  // Company details in white
-  doc.setFontSize(9);
-  doc.setFont(undefined, 'normal');
-  if (companyInfo.companyEmail) doc.text(companyInfo.companyEmail, 20, 27);
-  if (companyInfo.companyPhone) doc.text(companyInfo.companyPhone, 20, 32);
-  if (companyInfo.companyAddress) doc.text(companyInfo.companyAddress, 20, 37);
-
-  // INVOICE title on right side
-  doc.setFontSize(28);
-  doc.setFont(undefined, 'bold');
-  doc.text('INVOICE', 210 - 20, 25, { align: 'right' });
-
-  // Reset to black text
-  doc.setTextColor(0, 0, 0);
-
-  // Invoice details box
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'bold');
-  doc.text('Invoice #:', 140, 50);
-  doc.text('Date Issued:', 140, 57);
-  doc.text('Due Date:', 140, 64);
-
-  doc.setFont(undefined, 'normal');
-  doc.text(invoice.invoiceNumber, 170, 50);
-  doc.text(new Date(invoice.dateIssued).toLocaleDateString(), 170, 57);
-  doc.text(new Date(invoice.dueDate).toLocaleDateString(), 170, 64);
-
-  // Status badge
-  const statusColors = {
-    paid: [34, 197, 94],
-    unpaid: [234, 179, 8],
-    overdue: [239, 68, 68]
-  };
-  const statusColor = statusColors[invoice.status] || [107, 114, 128];
-  doc.setFillColor(...statusColor);
-  doc.roundedRect(140, 68, 25, 7, 2, 2, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8);
-  doc.text(invoice.status.toUpperCase(), 152.5, 72.5, { align: 'center' });
-  doc.setTextColor(0, 0, 0);
-
-  // Bill To section
-  doc.setFontSize(10);
-  doc.setFont(undefined, 'bold');
-  doc.text('BILL TO:', 20, 55);
-  
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(11);
-  doc.text(invoice.clientName, 20, 62);
-  
-  doc.setFontSize(9);
-  doc.text(invoice.clientEmail, 20, 69);
-  if (invoice.clientPhone) doc.text(invoice.clientPhone, 20, 75);
-  if (invoice.clientAddress) doc.text(invoice.clientAddress, 20, 81);
-
-  // Items table with blue header
-  const tableData = invoice.items.map(item => [
-    item.description,
-    item.quantity.toString(),
-    `${invoice.currency} ${item.unitPrice.toLocaleString()}`,
-    `${invoice.currency} ${item.total.toLocaleString()}`
-  ]);
-
-  doc.autoTable({
-    startY: 95,
-    head: [['Description', 'Qty', 'Unit Price', 'Total']],
-    body: tableData,
-    theme: 'striped',
-    headStyles: { 
-      fillColor: [37, 99, 235],
-      fontSize: 10,
-      fontStyle: 'bold',
-      halign: 'left'
-    },
-    columnStyles: {
-      1: { halign: 'center' },
-      2: { halign: 'right' },
-      3: { halign: 'right', fontStyle: 'bold' }
-    },
-    styles: {
-      fontSize: 9,
-      cellPadding: 5
+    // Get user profile for company info
+    let companyInfo = {};
+    try {
+      const profileResponse = await getProfile();
+      companyInfo = profileResponse.data.user;
+    } catch (error) {
+      console.log('Could not load company info');
     }
-  });
 
-  // Totals section with better styling
-  const finalY = doc.lastAutoTable.finalY + 15;
-  
-  // Totals box background
-  doc.setFillColor(249, 250, 251);
-  doc.roundedRect(120, finalY - 5, 70, 28, 2, 2, 'F');
+    const doc = new jsPDF();
 
-  doc.setFontSize(10);
-  doc.text('Subtotal:', 125, finalY);
-  doc.text(`${invoice.currency} ${invoice.subtotal.toLocaleString()}`, 185, finalY, { align: 'right' });
-  
-  doc.text(`Tax (${invoice.taxRate}%):`, 125, finalY + 7);
-  doc.text(`${invoice.currency} ${invoice.taxAmount.toLocaleString()}`, 185, finalY + 7, { align: 'right' });
-  
-  // Total with emphasis
-  doc.setDrawColor(37, 99, 235);
-  doc.setLineWidth(0.5);
-  doc.line(125, finalY + 10, 185, finalY + 10);
-  
-  doc.setFont(undefined, 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(37, 99, 235);
-  doc.text('TOTAL:', 125, finalY + 17);
-  doc.text(`${invoice.currency} ${invoice.total.toLocaleString()}`, 185, finalY + 17, { align: 'right' });
-  
-  doc.setTextColor(0, 0, 0);
-  doc.setFont(undefined, 'normal');
+    // Add blue header bar
+    doc.setFillColor(37, 99, 235);
+    doc.rect(0, 0, 210, 40, 'F');
 
-  // Notes section
-  let currentY = finalY + 30;
-  if (invoice.notes) {
-    doc.setFontSize(10);
+    // Company name in white
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
     doc.setFont(undefined, 'bold');
-    doc.text('Notes:', 20, currentY);
-    doc.setFont(undefined, 'normal');
+    doc.text(companyInfo.companyName || 'Your Company', 20, 20);
+
+    // Company details in white
     doc.setFontSize(9);
-    const notesLines = doc.splitTextToSize(invoice.notes, 170);
-    doc.text(notesLines, 20, currentY + 5);
-    currentY += (notesLines.length * 5) + 10;
-  }
+    doc.setFont(undefined, 'normal');
+    if (companyInfo.companyEmail) doc.text(companyInfo.companyEmail, 20, 27);
+    if (companyInfo.companyPhone) doc.text(companyInfo.companyPhone, 20, 32);
+    if (companyInfo.companyAddress) doc.text(companyInfo.companyAddress, 20, 37);
 
-  // Payment instructions section with blue background
-  if (invoice.paymentInstructions) {
-    doc.setFillColor(239, 246, 255);
-    doc.roundedRect(15, currentY - 5, 180, 20, 2, 2, 'F');
-    
+    // INVOICE title on right side
+    doc.setFontSize(28);
+    doc.setFont(undefined, 'bold');
+    doc.text('INVOICE', 210 - 20, 25, { align: 'right' });
+
+    // Reset to black text
+    doc.setTextColor(0, 0, 0);
+
+    // Invoice details box
     doc.setFontSize(10);
     doc.setFont(undefined, 'bold');
+    doc.text('Invoice #:', 140, 50);
+    doc.text('Date Issued:', 140, 57);
+    doc.text('Due Date:', 140, 64);
+
+    doc.setFont(undefined, 'normal');
+    doc.text(invoice.invoiceNumber, 170, 50);
+    doc.text(new Date(invoice.dateIssued).toLocaleDateString(), 170, 57);
+    doc.text(new Date(invoice.dueDate).toLocaleDateString(), 170, 64);
+
+    // Status badge
+    const statusColors = {
+      paid: [34, 197, 94],
+      unpaid: [234, 179, 8],
+      overdue: [239, 68, 68]
+    };
+    const statusColor = statusColors[invoice.status] || [107, 114, 128];
+    doc.setFillColor(...statusColor);
+    doc.roundedRect(140, 68, 25, 7, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text(invoice.status.toUpperCase(), 152.5, 72.5, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+
+    // Bill To section
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('BILL TO:', 20, 55);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(11);
+    doc.text(invoice.clientName, 20, 62);
+    
+    doc.setFontSize(9);
+    doc.text(invoice.clientEmail, 20, 69);
+    if (invoice.clientPhone) doc.text(invoice.clientPhone, 20, 75);
+    if (invoice.clientAddress) doc.text(invoice.clientAddress, 20, 81);
+
+    // Items table with blue header
+    const tableData = invoice.items.map(item => [
+      item.description,
+      item.quantity.toString(),
+      `${invoice.currency} ${item.unitPrice.toLocaleString()}`,
+      `${invoice.currency} ${item.total.toLocaleString()}`
+    ]);
+
+    doc.autoTable({
+      startY: 95,
+      head: [['Description', 'Qty', 'Unit Price', 'Total']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: [37, 99, 235],
+        fontSize: 10,
+        fontStyle: 'bold',
+        halign: 'left'
+      },
+      columnStyles: {
+        1: { halign: 'center' },
+        2: { halign: 'right' },
+        3: { halign: 'right', fontStyle: 'bold' }
+      },
+      styles: {
+        fontSize: 9,
+        cellPadding: 5
+      }
+    });
+
+    // Totals section with better styling
+    const finalY = doc.lastAutoTable.finalY + 15;
+    
+    // Totals box background
+    doc.setFillColor(249, 250, 251);
+    doc.roundedRect(120, finalY - 5, 70, 28, 2, 2, 'F');
+
+    doc.setFontSize(10);
+    doc.text('Subtotal:', 125, finalY);
+    doc.text(`${invoice.currency} ${invoice.subtotal.toLocaleString()}`, 185, finalY, { align: 'right' });
+    
+    doc.text(`Tax (${invoice.taxRate}%):`, 125, finalY + 7);
+    doc.text(`${invoice.currency} ${invoice.taxAmount.toLocaleString()}`, 185, finalY + 7, { align: 'right' });
+    
+    // Total with emphasis
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.5);
+    doc.line(125, finalY + 10, 185, finalY + 10);
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(12);
     doc.setTextColor(37, 99, 235);
-    doc.text('Payment Instructions:', 20, currentY);
-    
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(30, 58, 138);
-    doc.setFontSize(9);
-    const paymentLines = doc.splitTextToSize(invoice.paymentInstructions, 170);
-    doc.text(paymentLines, 20, currentY + 5);
+    doc.text('TOTAL:', 125, finalY + 17);
+    doc.text(`${invoice.currency} ${invoice.total.toLocaleString()}`, 185, finalY + 17, { align: 'right' });
     
     doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'normal');
+
+    // Notes section
+    let currentY = finalY + 30;
+    if (invoice.notes) {
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text('Notes:', 20, currentY);
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(9);
+      const notesLines = doc.splitTextToSize(invoice.notes, 170);
+      doc.text(notesLines, 20, currentY + 5);
+      currentY += (notesLines.length * 5) + 10;
+    }
+
+    // Payment instructions section with blue background
+    if (invoice.paymentInstructions) {
+      doc.setFillColor(239, 246, 255);
+      doc.roundedRect(15, currentY - 5, 180, 20, 2, 2, 'F');
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(37, 99, 235);
+      doc.text('Payment Instructions:', 20, currentY);
+      
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(30, 58, 138);
+      doc.setFontSize(9);
+      const paymentLines = doc.splitTextToSize(invoice.paymentInstructions, 170);
+      doc.text(paymentLines, 20, currentY + 5);
+      
+      doc.setTextColor(0, 0, 0);
+    }
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(107, 114, 128);
+    doc.text('Thank you for your business!', 105, 280, { align: 'center' });
+
+    doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading invoice...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Footer
-  doc.setFontSize(8);
-  doc.setTextColor(107, 114, 128);
-  doc.text('Thank you for your business!', 105, 280, { align: 'center' });
-
-  doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
-};  
+  // Show error state if invoice is null after loading
+  if (!invoice) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Invoice not found</p>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="mt-4 text-blue-600 hover:text-blue-700"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
