@@ -1,134 +1,129 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/user');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 
-// @route   POST /api/auth/register
-// @desc    Register new user
-// @access  Public
+// Register
 router.post('/register', async (req, res) => {
   try {
     const { email, password, companyName } = req.body;
 
-    // Validation
+    console.log('Register attempt:', { email, companyName });
+
+    // Validate input
     if (!email || !password) {
-      return res.status(400).json({ message: 'Please provide email and password' });
+      return res.status(400).json({ message: 'Email and password required' });
     }
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    let user = await User.findOne({ email });
+    if (user) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
     // Create user
-    const user = new User({
+    user = new User({
       email,
       password,
-      companyName: companyName || ''
+      companyName: companyName || 'My Company'
     });
 
     await user.save();
 
     // Create token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-      { expiresIn: '30d' }
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '7d'
+    });
 
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        companyName: user.companyName
-      }
+    res.status(201).json({ 
+      token, 
+      user: { 
+        id: user._id, 
+        email: user.email, 
+        companyName: user.companyName 
+      } 
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error: ' + error.message });
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
+// Login
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
+    console.log('Login attempt:', { email });
+
+    // Validate input
     if (!email || !password) {
-      return res.status(400).json({ message: 'Please provide email and password' });
+      return res.status(400).json({ message: 'Email and password required' });
     }
 
-    // Check if user exists
+    // Check user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Check password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Create token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-      { expiresIn: '30d' }
-    );
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '7d'
+    });
 
-    res.json({
-      token,
-      user: {
-        id: user._id,
+    res.json({ 
+      token, 
+      user: { 
+        id: user._id, 
         email: user.email,
-        companyName: user.companyName,
-        defaultCurrency: user.defaultCurrency
-      }
+        companyName: user.companyName 
+      } 
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error: ' + error.message });
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
-router.get('/me', auth, async (req, res) => {
+// Get user profile
+router.get('/profile', auth, async (req, res) => {
   try {
-    res.json({
-      user: {
-        id: req.user._id,
-        email: req.user.email,
-        companyName: req.user.companyName,
-        companyEmail: req.user.companyEmail,
-        companyPhone: req.user.companyPhone,
-        companyAddress: req.user.companyAddress,
-        defaultCurrency: req.user.defaultCurrency
-      }
-    });
+    console.log('Get profile for user:', req.userId);
+
+    const user = await User.findById(req.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ user });
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Get profile error:', error);
+    res.status(500).json({ message: 'Server error: ' + error.message });
   }
 });
 
-// @route   PUT /api/auth/profile
-// @desc    Update user profile
-// @access  Private
+// Update user profile
 router.put('/profile', auth, async (req, res) => {
   try {
     const { companyName, companyEmail, companyPhone, companyAddress, defaultCurrency } = req.body;
 
-    const user = await User.findById(req.user._id);
-    
+    console.log('Update profile for user:', req.userId);
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update fields
     if (companyName !== undefined) user.companyName = companyName;
     if (companyEmail !== undefined) user.companyEmail = companyEmail;
     if (companyPhone !== undefined) user.companyPhone = companyPhone;
@@ -137,20 +132,10 @@ router.put('/profile', auth, async (req, res) => {
 
     await user.save();
 
-    res.json({
-      user: {
-        id: user._id,
-        email: user.email,
-        companyName: user.companyName,
-        companyEmail: user.companyEmail,
-        companyPhone: user.companyPhone,
-        companyAddress: user.companyAddress,
-        defaultCurrency: user.defaultCurrency
-      }
-    });
+    res.json({ user });
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error: ' + error.message });
   }
 });
 

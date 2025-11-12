@@ -1,34 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const Invoice = require('../models/invoice');
+const mongoose = require('mongoose');
+const Invoice = require('../models/Invoice');
 const auth = require('../middleware/auth');
 
-// @route   POST /api/invoices
-// @desc    Create new invoice
-// @access  Private
-router.post('/', auth, async (req, res) => {
-  try {
-    const invoice = new Invoice({
-      ...req.body,
-      user: req.user._id
-    });
-
-    await invoice.save();
-    res.status(201).json(invoice);
-  } catch (error) {
-    console.error('Create invoice error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   GET /api/invoices
-// @desc    Get all user invoices
-// @access  Private
+// Get all user's invoices
 router.get('/', auth, async (req, res) => {
   try {
-    const invoices = await Invoice.find({ user: req.user._id })
-      .sort({ createdAt: -1 });
-    
+    const invoices = await Invoice.find({ user: req.userId })
+      .sort({ dateIssued: -1 });
     res.json(invoices);
   } catch (error) {
     console.error('Get invoices error:', error);
@@ -36,14 +16,17 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// @route   GET /api/invoices/:id
-// @desc    Get single invoice
-// @access  Private
+// Get single invoice
 router.get('/:id', auth, async (req, res) => {
   try {
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-      user: req.user._id
+      user: req.userId
     });
 
     if (!invoice) {
@@ -57,80 +40,157 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// @route   PUT /api/invoices/:id
-// @desc    Update invoice
-// @access  Private
+// Create invoice
+router.post('/', auth, async (req, res) => {
+  try {
+    const {
+      invoiceNumber,
+      clientName,
+      clientEmail,
+      items,
+      currency,
+      taxRate
+    } = req.body;
+
+    // Validate required fields
+    if (!invoiceNumber?.trim()) {
+      return res.status(400).json({ message: 'Invoice number is required' });
+    }
+
+    if (!clientName?.trim()) {
+      return res.status(400).json({ message: 'Client name is required' });
+    }
+
+    if (!clientEmail?.trim()) {
+      return res.status(400).json({ message: 'Client email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(clientEmail)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    // Validate items
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'At least one item is required' });
+    }
+
+    // Validate each item
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item.description?.trim()) {
+        return res.status(400).json({ message: `Item ${i + 1}: Description is required` });
+      }
+      if (!item.quantity || item.quantity <= 0) {
+        return res.status(400).json({ message: `Item ${i + 1}: Quantity must be greater than 0` });
+      }
+      if (!item.unitPrice || item.unitPrice < 0) {
+        return res.status(400).json({ message: `Item ${i + 1}: Unit price cannot be negative` });
+      }
+    }
+
+    // Check for duplicate invoice number
+    const existingInvoice = await Invoice.findOne({
+      invoiceNumber: invoiceNumber.trim(),
+      user: req.userId
+    });
+
+    if (existingInvoice) {
+      return res.status(400).json({ message: 'Invoice number already exists' });
+    }
+
+    // Create invoice
+    const invoice = new Invoice({
+      ...req.body,
+      user: req.userId,
+      invoiceNumber: invoiceNumber.trim(),
+      clientName: clientName.trim(),
+      clientEmail: clientEmail.trim().toLowerCase()
+    });
+
+    await invoice.save();
+    res.status(201).json(invoice);
+  } catch (error) {
+    console.error('Create invoice error:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+    
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update invoice
 router.put('/:id', auth, async (req, res) => {
   try {
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-      user: req.user._id
+      user: req.userId
     });
 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    // Update fields
-    Object.keys(req.body).forEach(key => {
-      invoice[key] = req.body[key];
-    });
+    // If updating invoice number, check for duplicates
+    if (req.body.invoiceNumber && req.body.invoiceNumber !== invoice.invoiceNumber) {
+      const existingInvoice = await Invoice.findOne({
+        invoiceNumber: req.body.invoiceNumber,
+        user: req.userId,
+        _id: { $ne: req.params.id }
+      });
 
+      if (existingInvoice) {
+        return res.status(400).json({ message: 'Invoice number already exists' });
+      }
+    }
+
+    // Update invoice
+    Object.assign(invoice, req.body);
     await invoice.save();
+
     res.json(invoice);
   } catch (error) {
     console.error('Update invoice error:', error);
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+    
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// @route   DELETE /api/invoices/:id
-// @desc    Delete invoice
-// @access  Private
+// Delete invoice
 router.delete('/:id', auth, async (req, res) => {
   try {
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+
     const invoice = await Invoice.findOneAndDelete({
       _id: req.params.id,
-      user: req.user._id
+      user: req.userId
     });
 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    res.json({ message: 'Invoice deleted' });
+    res.json({ message: 'Invoice deleted successfully' });
   } catch (error) {
     console.error('Delete invoice error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   PATCH /api/invoices/:id/status
-// @desc    Update invoice status
-// @access  Private
-router.patch('/:id/status', auth, async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    if (!['paid', 'unpaid', 'overdue'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
-
-    const invoice = await Invoice.findOne({
-      _id: req.params.id,
-      user: req.user._id
-    });
-
-    if (!invoice) {
-      return res.status(404).json({ message: 'Invoice not found' });
-    }
-
-    invoice.status = status;
-    await invoice.save();
-
-    res.json(invoice);
-  } catch (error) {
-    console.error('Update status error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

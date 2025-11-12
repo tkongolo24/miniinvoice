@@ -1,69 +1,61 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import Login from './pages/login';
+import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateInvoice from './pages/CreateInvoice';
 import InvoiceDetail from './pages/InvoiceDetail';
 import Profile from './pages/Profile';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Protected Route component
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" />;
+}
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
-
-  useEffect(() => {
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
-  }, [token]);
-
-  const PrivateRoute = ({ children }) => {
-    return token ? children : <Navigate to="/login" />;
-  };
-
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <Router>
         <Routes>
-          <Route path="/login" element={<Login setToken={setToken} />} />
-          <Route path="/register" element={<Register setToken={setToken} />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route
             path="/dashboard"
             element={
-              <PrivateRoute>
-                <Dashboard setToken={setToken} />
-              </PrivateRoute>
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
             }
           />
           <Route
             path="/create-invoice"
             element={
-              <PrivateRoute>
+              <ProtectedRoute>
                 <CreateInvoice />
-              </PrivateRoute>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/invoice/:id"
             element={
-              <PrivateRoute>
+              <ProtectedRoute>
                 <InvoiceDetail />
-              </PrivateRoute>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/profile"
             element={
-              <PrivateRoute>
+              <ProtectedRoute>
                 <Profile />
-              </PrivateRoute>
+              </ProtectedRoute>
             }
           />
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
-      </div>
-    </Router>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

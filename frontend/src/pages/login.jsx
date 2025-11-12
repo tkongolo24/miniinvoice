@@ -16,7 +16,8 @@ function Login({ setToken }) {
 
     try {
       const response = await login({ email, password });
-      setToken(response.data.token);
+      localStorage.setItem('token', response.data.token);
+      if (setToken) setToken(response.data.token);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');

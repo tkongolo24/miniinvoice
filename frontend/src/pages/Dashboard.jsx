@@ -45,9 +45,9 @@ function Dashboard({ setToken }) {
   };
 
   const handleLogout = () => {
-    setToken(null);
-    navigate('/login');
-  };
+  localStorage.removeItem('token');
+  navigate('/login');
+};
 
   const getStatusColor = (status) => {
     switch (status) {

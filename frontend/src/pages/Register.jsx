@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../utils/api';
 
-function Register({ setToken }) {
+function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -17,7 +17,7 @@ function Register({ setToken }) {
 
     try {
       const response = await register({ email, password, companyName });
-      setToken(response.data.token);
+      localStorage.setItem('token', response.data.token);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
