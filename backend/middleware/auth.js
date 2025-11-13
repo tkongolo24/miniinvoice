@@ -20,8 +20,9 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'User not found' });
     }
 
-    // Attach user to request
+    // Attach BOTH user and userId to request (for compatibility)
     req.user = user;
+    req.userId = user._id;
     next();
   } catch (error) {
     res.status(401).json({ message: 'Token is not valid' });

@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createInvoice } from '../utils/api';
 
 function CreateInvoice() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     invoiceNumber: `INV-${Date.now()}`,
     clientName: '',
@@ -21,6 +22,26 @@ function CreateInvoice() {
   const [items, setItems] = useState([
     { description: '', quantity: 1, unitPrice: 0 }
   ]);
+
+  useEffect(() => {
+    if (location.state?.duplicateFrom) {
+      const inv = location.state.duplicateFrom;
+      setFormData({
+        invoiceNumber: `INV-${Date.now()}`,
+        clientName: inv.clientName,
+        clientEmail: inv.clientEmail,
+        clientAddress: inv.clientAddress || '',
+        clientPhone: inv.clientPhone || '',
+        dateIssued: new Date().toISOString().split('T')[0],
+        dueDate: '',
+        currency: inv.currency,
+        taxRate: inv.taxRate || 18,
+        notes: inv.notes || '',
+        paymentInstructions: inv.paymentInstructions || '',
+      });
+      setItems(inv.items || [{ description: '', quantity: 1, unitPrice: 0 }]);
+    }
+  }, [location]);
 
   const addItem = () => {
     setItems([...items, { description: '', quantity: 1, unitPrice: 0 }]);

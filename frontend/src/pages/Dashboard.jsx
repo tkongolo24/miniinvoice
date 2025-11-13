@@ -44,10 +44,14 @@ function Dashboard({ setToken }) {
     }
   };
 
+  const handleDuplicate = (invoice) => {
+    navigate('/create-invoice', { state: { duplicateFrom: invoice } });
+  };
+
   const handleLogout = () => {
-  localStorage.removeItem('token');
-  navigate('/login');
-};
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -145,6 +149,21 @@ function Dashboard({ setToken }) {
                       >
                         View
                       </Link>
+                      {/* Only show Edit button if status is NOT paid */}
+                      {invoice.status !== 'paid' && (
+                        <button
+                          onClick={() => navigate(`/edit-invoice/${invoice._id}`)}
+                          className="text-purple-600 hover:text-purple-900 mr-3"
+                        >
+                          Edit
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDuplicate(invoice)}
+                        className="text-green-600 hover:text-green-900 mr-3"
+                      >
+                        Duplicate
+                      </button>
                       <button
                         onClick={() => handleDelete(invoice._id)}
                         className="text-red-600 hover:text-red-900"
