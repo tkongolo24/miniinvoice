@@ -2,140 +2,131 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const User = require('../models/user');
 const auth = require('../middleware/auth');
 
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, companyName } = req.body;
-
-    console.log('Register attempt:', { email, companyName });
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password required' });
-    }
+    const { name, email, password } = req.body;
 
     // Check if user exists
-    let user = await User.findOne({ email });
-    if (user) {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create user
-    user = new User({
+    // Create new user
+    const user = new User({
+      name,
       email,
-      password,
-      companyName: companyName || 'My Company'
+      password
     });
 
     await user.save();
 
     // Create token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d'
-    });
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    res.status(201).json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        email: user.email, 
-        companyName: user.companyName 
-      } 
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({ message: 'Server error: ' + error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
 // Login
 router.post('/login', async (req, res) => {
   try {
+    console.log('Login attempt:', { email: req.body.email });
     const { email, password } = req.body;
 
-    console.log('Login attempt:', { email });
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password required' });
-    }
-
-    // Check user
+    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Create token
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d'
-    });
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    res.json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        email: user.email,
-        companyName: user.companyName 
-      } 
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error: ' + error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Get user profile
+// Get profile
 router.get('/profile', auth, async (req, res) => {
   try {
     console.log('Get profile for user:', req.userId);
-
     const user = await User.findById(req.userId).select('-password');
+    
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json({ user });
+    res.json(user);
   } catch (error) {
     console.error('Get profile error:', error);
-    res.status(500).json({ message: 'Server error: ' + error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Update user profile
+// Update profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { companyName, companyEmail, companyPhone, companyAddress, defaultCurrency } = req.body;
-
     console.log('Update profile for user:', req.userId);
+    
+    const { companyName, phone, address, currency, defaultTemplate } = req.body;
 
     const user = await User.findById(req.userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Update fields
+    // Update only the fields that are provided
     if (companyName !== undefined) user.companyName = companyName;
-    if (companyEmail !== undefined) user.companyEmail = companyEmail;
-    if (companyPhone !== undefined) user.companyPhone = companyPhone;
-    if (companyAddress !== undefined) user.companyAddress = companyAddress;
-    if (defaultCurrency !== undefined) user.defaultCurrency = defaultCurrency;
+    if (phone !== undefined) user.phone = phone;
+    if (address !== undefined) user.address = address;
+    if (currency !== undefined) user.currency = currency;
+    if (defaultTemplate !== undefined) user.defaultTemplate = defaultTemplate;
 
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
-    res.json({ user });
+    res.json(user);
   } catch (error) {
     console.error('Update profile error:', error);
-    res.status(500).json({ message: 'Server error: ' + error.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

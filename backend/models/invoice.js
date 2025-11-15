@@ -8,7 +8,8 @@ const invoiceSchema = new mongoose.Schema({
   },
   invoiceNumber: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   clientName: {
     type: String,
@@ -19,10 +20,6 @@ const invoiceSchema = new mongoose.Schema({
     required: true
   },
   clientAddress: {
-    type: String,
-    default: ''
-  },
-  clientPhone: {
     type: String,
     default: ''
   },
@@ -42,72 +39,50 @@ const invoiceSchema = new mongoose.Schema({
     quantity: {
       type: Number,
       required: true,
-      min: 0
+      min: 1
     },
     unitPrice: {
       type: Number,
       required: true,
       min: 0
-    },
-    total: {
-      type: Number,
-      required: true
     }
   }],
   subtotal: {
     type: Number,
-    required: true
+    required: true,
+    min: 0
   },
   taxRate: {
     type: Number,
     default: 0,
-    min: 0,
-    max: 100
+    min: 0
   },
   taxAmount: {
     type: Number,
-    default: 0
+    required: true,
+    min: 0
   },
   total: {
     type: Number,
-    required: true
-  },
-  currency: {
-    type: String,
-    default: 'RWF',
-    enum: ['RWF', 'USD', 'KES', 'NGN', 'EUR']
+    required: true,
+    min: 0
   },
   status: {
     type: String,
-    enum: ['unpaid', 'paid', 'overdue'],
+    enum: ['paid', 'unpaid'],
     default: 'unpaid'
   },
   notes: {
     type: String,
     default: ''
   },
-  paymentInstructions: {
+  template: {
     type: String,
-    default: ''
-  },
-  paymentLink: {
-    type: String,
-    default: ''
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+    enum: ['classic', 'modern', 'elegant'],
+    default: 'classic'
   }
-});
-
-// Update the updatedAt timestamp before saving
-invoiceSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
+}, {
+  timestamps: true
 });
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

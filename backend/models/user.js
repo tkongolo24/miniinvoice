@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
   email: {
     type: String,
     required: true,
@@ -11,38 +16,39 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
+    required: true,
+    minlength: 6
   },
   companyName: {
     type: String,
     default: ''
   },
-  companyEmail: {
+  phone: {
     type: String,
     default: ''
   },
-  companyPhone: {
+  address: {
     type: String,
     default: ''
   },
-  companyAddress: {
+  currency: {
     type: String,
-    default: ''
+    default: 'USD'
   },
-  defaultCurrency: {
+  defaultTemplate: {
     type: String,
-    default: 'RWF',
-    enum: ['RWF', 'USD', 'KES', 'NGN', 'EUR']
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+    enum: ['classic', 'modern', 'elegant'],
+    default: 'classic'
   }
+}, {
+  timestamps: true
 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password')) {
+    return next();
+  }
   
   try {
     const salt = await bcrypt.genSalt(10);
@@ -53,9 +59,16 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Method to compare password
+// Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.models.User || mongoose.model('User', userSchema);
+// Remove password from JSON response
+userSchema.methods.toJSON = function() {
+  const user = this.toObject();
+  delete user.password;
+  return user;
+};
+
+module.exports = mongoose.model('User', userSchema);

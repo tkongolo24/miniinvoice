@@ -84,6 +84,35 @@ export const translations = {
     createNewInvoice: 'Create New Invoice',
     createButton: 'Create Invoice',
     creating: 'Creating...',
+
+    // Login Page
+    loginTitle: 'Login to MiniInvoice',
+    loginSubtitle: 'Enter your credentials to access your account',
+    email: 'Email',
+    emailPlaceholder: 'you@example.com',
+    password: 'Password',
+    passwordPlaceholder: 'Enter your password',
+    loginButton: 'Login',
+    loggingIn: 'Logging in...',
+    noAccount: "Don't have an account?",
+    signUp: 'Sign up',
+    loginError: 'Login failed. Please check your credentials.',
+    
+    // Register Page
+    registerTitle: 'Create Account',
+    registerSubtitle: 'Sign up to start creating invoices',
+    fullName: 'Full Name',
+    fullNamePlaceholder: 'John Doe',
+    companyName: 'Company Name',
+    companyNamePlaceholder: 'Your Company Ltd',
+    confirmPassword: 'Confirm Password',
+    confirmPasswordPlaceholder: 'Re-enter your password',
+    registerButton: 'Create Account',
+    registering: 'Creating account...',
+    haveAccount: 'Already have an account?',
+    signIn: 'Sign in',
+    registerError: 'Registration failed. Please try again.',
+    passwordMismatch: 'Passwords do not match',
   },
   
   fr: {
@@ -169,6 +198,35 @@ export const translations = {
     createNewInvoice: 'Créer une Nouvelle Facture',
     createButton: 'Créer la Facture',
     creating: 'Création...',
+
+    // Login Page
+    loginTitle: 'Connexion à MiniFacture',
+    loginSubtitle: 'Entrez vos identifiants pour accéder à votre compte',
+    email: 'Email',
+    emailPlaceholder: 'vous@exemple.com',
+    password: 'Mot de passe',
+    passwordPlaceholder: 'Entrez votre mot de passe',
+    loginButton: 'Se connecter',
+    loggingIn: 'Connexion...',
+    noAccount: "Vous n'avez pas de compte?",
+    signUp: "S'inscrire",
+    loginError: 'Échec de connexion. Vérifiez vos identifiants.',
+    
+    // Register Page
+    registerTitle: 'Créer un Compte',
+    registerSubtitle: 'Inscrivez-vous pour commencer à créer des factures',
+    fullName: 'Nom Complet',
+    fullNamePlaceholder: 'Jean Dupont',
+    companyName: 'Nom de l\'Entreprise',
+    companyNamePlaceholder: 'Votre Entreprise Ltd',
+    confirmPassword: 'Confirmer le Mot de Passe',
+    confirmPasswordPlaceholder: 'Ressaisissez votre mot de passe',
+    registerButton: 'Créer un Compte',
+    registering: 'Création du compte...',
+    haveAccount: 'Vous avez déjà un compte?',
+    signIn: 'Se connecter',
+    registerError: 'Échec de l\'inscription. Veuillez réessayer.',
+    passwordMismatch: 'Les mots de passe ne correspondent pas',
   },
   
   rw: {
@@ -254,6 +312,35 @@ export const translations = {
     createNewInvoice: 'Kora Inyemezabuguzi Nshya',
     createButton: 'Kora Inyemezabuguzi',
     creating: 'Birakora...',
+
+    // Login Page
+    loginTitle: 'Kwinjira muri MiniFacture',
+    loginSubtitle: 'Injiza ibyangombwa byawe kugirango ubone konti yawe',
+    email: 'Imeri',
+    emailPlaceholder: 'wowe@urugero.com',
+    password: 'Ijambo ry\'ibanga',
+    passwordPlaceholder: 'Injiza ijambo ryawe ry\'ibanga',
+    loginButton: 'Injira',
+    loggingIn: 'Kwinjira...',
+    noAccount: 'Ntufite konti?',
+    signUp: 'Iyandikishe',
+    loginError: 'Kwinjira byanze. Suzuma ibyangombwa byawe.',
+    
+    // Register Page
+    registerTitle: 'Kurema Konti',
+    registerSubtitle: 'Iyandikishe kugirango utangire gukora inyemezabuguzi',
+    fullName: 'Amazina Yuzuye',
+    fullNamePlaceholder: 'Yohani Mukiza',
+    companyName: 'Izina ry\'Isosiyete',
+    companyNamePlaceholder: 'Isosiyete Yanyu Ltd',
+    confirmPassword: 'Emeza Ijambo ry\'ibanga',
+    confirmPasswordPlaceholder: 'Ongera wandike ijambo ryawe ry\'ibanga',
+    registerButton: 'Kurema Konti',
+    registering: 'Kurema konti...',
+    haveAccount: 'Usanzwe ufite konti?',
+    signIn: 'Injira',
+    registerError: 'Kwiyandikisha byanze. Ongera ugerageze.',
+    passwordMismatch: 'Amagambo y\'ibanga ntabwo ahura',
   }
 };
 

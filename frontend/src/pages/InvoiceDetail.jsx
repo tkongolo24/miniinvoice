@@ -1,311 +1,241 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getInvoice, getProfile } from '../utils/api';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import api from '../utils/api';
+import { generateInvoicePDF } from '../utils/pdfTemplates';
 
-function InvoiceDetail() {
+// Currency symbols mapping
+const getCurrencySymbol = (currency) => {
+  const symbols = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    RWF: 'FRw',
+    KES: 'KSh',
+    NGN: '₦',
+    ZAR: 'R'
+  };
+  return symbols[currency] || currency;
+};
+
+export default function InvoiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
+  const [companyInfo, setCompanyInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [currencySymbol, setCurrencySymbol] = useState('$');
 
   useEffect(() => {
-    fetchInvoice();
+    fetchInvoiceAndProfile();
   }, [id]);
 
-  const fetchInvoice = async () => {
+  const fetchInvoiceAndProfile = async () => {
     try {
-      const response = await getInvoice(id);
-      setInvoice(response.data);
-    } catch (error) {
-      alert('Failed to load invoice');
-      navigate('/dashboard');
+      setLoading(true);
+      const [invoiceRes, profileRes] = await Promise.all([
+        api.get(`/invoices/${id}`),
+        api.get('/auth/profile')
+      ]);
+
+      setInvoice(invoiceRes.data);
+      setCompanyInfo(profileRes.data);
+      setCurrencySymbol(getCurrencySymbol(profileRes.data.currency || 'USD'));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load invoice');
     } finally {
       setLoading(false);
     }
   };
 
-  const downloadPDF = async () => {
-    if (!invoice) return;
+  const handleDownloadPDF = () => {
+    if (!invoice || !companyInfo) return;
 
-    // Get user profile for company info
-    let companyInfo = {};
     try {
-      const profileResponse = await getProfile();
-      companyInfo = profileResponse.data.user;
-    } catch (error) {
-      console.log('Could not load company info');
+      // Use the invoice's selected template
+      const doc = generateInvoicePDF(invoice, companyInfo, invoice.template);
+      doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Failed to generate PDF. Please try again.');
     }
-
-    const doc = new jsPDF();
-
-    // Add blue header bar
-    doc.setFillColor(37, 99, 235);
-    doc.rect(0, 0, 210, 40, 'F');
-
-    // Company name in white
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont(undefined, 'bold');
-    doc.text(companyInfo.companyName || 'Your Company', 20, 20);
-
-    // Company details in white
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    if (companyInfo.companyEmail) doc.text(companyInfo.companyEmail, 20, 27);
-    if (companyInfo.companyPhone) doc.text(companyInfo.companyPhone, 20, 32);
-    if (companyInfo.companyAddress) doc.text(companyInfo.companyAddress, 20, 37);
-
-    // INVOICE title on right side
-    doc.setFontSize(28);
-    doc.setFont(undefined, 'bold');
-    doc.text('INVOICE', 210 - 20, 25, { align: 'right' });
-
-    // Reset to black text
-    doc.setTextColor(0, 0, 0);
-
-    // Invoice details box
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'bold');
-    doc.text('Invoice #:', 140, 50);
-    doc.text('Date Issued:', 140, 57);
-    doc.text('Due Date:', 140, 64);
-
-    doc.setFont(undefined, 'normal');
-    doc.text(invoice.invoiceNumber, 170, 50);
-    doc.text(new Date(invoice.dateIssued).toLocaleDateString(), 170, 57);
-    doc.text(new Date(invoice.dueDate).toLocaleDateString(), 170, 64);
-
-    // Status badge
-    const statusColors = {
-      paid: [34, 197, 94],
-      unpaid: [234, 179, 8],
-      overdue: [239, 68, 68]
-    };
-    const statusColor = statusColors[invoice.status] || [107, 114, 128];
-    doc.setFillColor(...statusColor);
-    doc.roundedRect(140, 68, 25, 7, 2, 2, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.text(invoice.status.toUpperCase(), 152.5, 72.5, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
-
-    // Bill To section
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'bold');
-    doc.text('BILL TO:', 20, 55);
-    
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(11);
-    doc.text(invoice.clientName, 20, 62);
-    
-    doc.setFontSize(9);
-    doc.text(invoice.clientEmail, 20, 69);
-    if (invoice.clientPhone) doc.text(invoice.clientPhone, 20, 75);
-    if (invoice.clientAddress) doc.text(invoice.clientAddress, 20, 81);
-
-    // Items table with blue header
-    const tableData = invoice.items.map(item => [
-      item.description,
-      item.quantity.toString(),
-      `${invoice.currency} ${item.unitPrice.toLocaleString()}`,
-      `${invoice.currency} ${item.total.toLocaleString()}`
-    ]);
-
-    doc.autoTable({
-      startY: 95,
-      head: [['Description', 'Qty', 'Unit Price', 'Total']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: { 
-        fillColor: [37, 99, 235],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'left'
-      },
-      columnStyles: {
-        1: { halign: 'center' },
-        2: { halign: 'right' },
-        3: { halign: 'right', fontStyle: 'bold' }
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 5
-      }
-    });
-
-    // Totals section with better styling
-    const finalY = doc.lastAutoTable.finalY + 15;
-    
-    // Totals box background
-    doc.setFillColor(249, 250, 251);
-    doc.roundedRect(120, finalY - 5, 70, 28, 2, 2, 'F');
-
-    doc.setFontSize(10);
-    doc.text('Subtotal:', 125, finalY);
-    doc.text(`${invoice.currency} ${invoice.subtotal.toLocaleString()}`, 185, finalY, { align: 'right' });
-    
-    doc.text(`Tax (${invoice.taxRate}%):`, 125, finalY + 7);
-    doc.text(`${invoice.currency} ${invoice.taxAmount.toLocaleString()}`, 185, finalY + 7, { align: 'right' });
-    
-    // Total with emphasis
-    doc.setDrawColor(37, 99, 235);
-    doc.setLineWidth(0.5);
-    doc.line(125, finalY + 10, 185, finalY + 10);
-    
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(37, 99, 235);
-    doc.text('TOTAL:', 125, finalY + 17);
-    doc.text(`${invoice.currency} ${invoice.total.toLocaleString()}`, 185, finalY + 17, { align: 'right' });
-    
-    doc.setTextColor(0, 0, 0);
-    doc.setFont(undefined, 'normal');
-
-    // Notes section
-    let currentY = finalY + 30;
-    if (invoice.notes) {
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'bold');
-      doc.text('Notes:', 20, currentY);
-      doc.setFont(undefined, 'normal');
-      doc.setFontSize(9);
-      const notesLines = doc.splitTextToSize(invoice.notes, 170);
-      doc.text(notesLines, 20, currentY + 5);
-      currentY += (notesLines.length * 5) + 10;
-    }
-
-    // Payment instructions section with blue background
-    if (invoice.paymentInstructions) {
-      doc.setFillColor(239, 246, 255);
-      doc.roundedRect(15, currentY - 5, 180, 20, 2, 2, 'F');
-      
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(37, 99, 235);
-      doc.text('Payment Instructions:', 20, currentY);
-      
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(30, 58, 138);
-      doc.setFontSize(9);
-      const paymentLines = doc.splitTextToSize(invoice.paymentInstructions, 170);
-      doc.text(paymentLines, 20, currentY + 5);
-      
-      doc.setTextColor(0, 0, 0);
-    }
-
-    // Footer
-    doc.setFontSize(8);
-    doc.setTextColor(107, 114, 128);
-    doc.text('Thank you for your business!', 105, 280, { align: 'center' });
-
-    doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
   };
 
-  // Show loading state
+  const handleToggleStatus = async () => {
+    try {
+      const newStatus = invoice.status === 'paid' ? 'unpaid' : 'paid';
+      await api.put(`/invoices/${id}`, { status: newStatus });
+      setInvoice({ ...invoice, status: newStatus });
+    } catch (err) {
+      alert('Failed to update status');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+
+    try {
+      await api.delete(`/invoices/${id}`);
+      navigate('/dashboard');
+    } catch (err) {
+      alert('Failed to delete invoice');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading invoice...</p>
-        </div>
+        <div className="text-xl text-gray-600">Loading invoice...</div>
       </div>
     );
   }
 
-  // Show error state if invoice is null after loading
-  if (!invoice) {
+  if (error || !invoice) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Invoice not found</p>
+          <div className="text-xl text-red-600 mb-4">{error || 'Invoice not found'}</div>
           <button
             onClick={() => navigate('/dashboard')}
-            className="mt-4 text-blue-600 hover:text-blue-700"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            ← Back to Dashboard
+            Back to Dashboard
           </button>
         </div>
       </div>
     );
   }
 
+  const getTemplateName = (template) => {
+    const names = {
+      classic: 'Classic',
+      modern: 'Modern',
+      elegant: 'Elegant'
+    };
+    return names[template] || 'Classic';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-blue-600">Invoice Details</h1>
-            <div className="flex gap-3">
-              <button
-                onClick={downloadPDF}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-              >
-                Download PDF
-              </button>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2"
-              >
-                ← Back
-              </button>
-            </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Header Actions */}
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-4 py-2 text-gray-600 hover:text-gray-900"
+          >
+            ← Back to Dashboard
+          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleToggleStatus}
+              className={`px-6 py-2 rounded-lg font-medium ${
+                invoice.status === 'paid'
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+            >
+              Mark as {invoice.status === 'paid' ? 'Unpaid' : 'Paid'}
+            </button>
+            <button
+              onClick={() => navigate(`/edit-invoice/${id}`)}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            >
+              Edit
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+            >
+              Download PDF
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+            >
+              Delete
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* Invoice Preview */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* Header */}
-          <div className="flex justify-between items-start mb-8">
+        {/* Invoice Preview */}
+        <div className="bg-white rounded-lg shadow-md p-8">
+          {/* Status Badge */}
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-3xl font-bold text-blue-600 mb-2">INVOICE</h2>
-              <p className="text-sm text-gray-600">Invoice #: {invoice.invoiceNumber}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm"><span className="font-medium">Issued:</span> {new Date(invoice.dateIssued).toLocaleDateString()}</p>
-              <p className="text-sm"><span className="font-medium">Due:</span> {new Date(invoice.dueDate).toLocaleDateString()}</p>
-              <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
-                invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                invoice.status === 'unpaid' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-red-100 text-red-800'
-              }`}>
+              <span
+                className={`inline-block px-4 py-1 rounded-full text-sm font-medium ${
+                  invoice.status === 'paid'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-yellow-100 text-yellow-800'
+                }`}
+              >
                 {invoice.status.toUpperCase()}
               </span>
+              <div className="mt-2 text-sm text-gray-600">
+                Template: <span className="font-medium">{getTemplateName(invoice.template)}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-gray-900">INVOICE</div>
+              <div className="text-gray-600 mt-1">#{invoice.invoiceNumber}</div>
             </div>
           </div>
 
-          {/* Bill To */}
+          {/* Company Info */}
           <div className="mb-8">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">BILL TO:</h3>
-            <p className="font-medium">{invoice.clientName}</p>
-            <p className="text-sm text-gray-600">{invoice.clientEmail}</p>
-            {invoice.clientPhone && <p className="text-sm text-gray-600">{invoice.clientPhone}</p>}
-            {invoice.clientAddress && <p className="text-sm text-gray-600">{invoice.clientAddress}</p>}
+            <div className="text-2xl font-bold text-gray-900">{companyInfo?.companyName}</div>
+            <div className="text-gray-600 mt-1">{companyInfo?.email}</div>
+            {companyInfo?.phone && <div className="text-gray-600">{companyInfo.phone}</div>}
+            {companyInfo?.address && <div className="text-gray-600">{companyInfo.address}</div>}
+          </div>
+
+          {/* Dates and Client Info */}
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            <div>
+              <div className="text-sm font-semibold text-gray-700 mb-2">BILL TO</div>
+              <div className="text-gray-900 font-medium">{invoice.clientName}</div>
+              <div className="text-gray-600">{invoice.clientEmail}</div>
+              {invoice.clientAddress && (
+                <div className="text-gray-600 mt-1">{invoice.clientAddress}</div>
+              )}
+            </div>
+            <div className="text-right">
+              <div className="mb-3">
+                <div className="text-sm text-gray-600">Date Issued</div>
+                <div className="font-medium text-gray-900">
+                  {new Date(invoice.dateIssued).toLocaleDateString()}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Due Date</div>
+                <div className="font-medium text-gray-900">
+                  {new Date(invoice.dueDate).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Items Table */}
           <div className="mb-8">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b-2 border-gray-200">
-                <tr>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Description</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Qty</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Price</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Total</th>
+              <thead>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="text-left py-3 text-sm font-semibold text-gray-700">Description</th>
+                  <th className="text-center py-3 text-sm font-semibold text-gray-700">Quantity</th>
+                  <th className="text-right py-3 text-sm font-semibold text-gray-700">Unit Price</th>
+                  <th className="text-right py-3 text-sm font-semibold text-gray-700">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {invoice.items.map((item, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="py-3 px-4">{item.description}</td>
-                    <td className="py-3 px-4 text-right">{item.quantity}</td>
-                    <td className="py-3 px-4 text-right">{invoice.currency} {item.unitPrice.toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right font-medium">{invoice.currency} {item.total.toFixed(2)}</td>
+                  <tr key={index} className="border-b border-gray-100">
+                    <td className="py-4 text-gray-900">{item.description}</td>
+                    <td className="py-4 text-center text-gray-900">{item.quantity}</td>
+                    <td className="py-4 text-right text-gray-900">{currencySymbol}{item.unitPrice.toFixed(2)}</td>
+                    <td className="py-4 text-right text-gray-900">
+                      {currencySymbol}{(item.quantity * item.unitPrice).toFixed(2)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -314,41 +244,31 @@ function InvoiceDetail() {
 
           {/* Totals */}
           <div className="flex justify-end mb-8">
-            <div className="w-64">
-              <div className="flex justify-between py-2">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">{invoice.currency} {invoice.subtotal.toFixed(2)}</span>
+            <div className="w-80">
+              <div className="flex justify-between py-2 text-gray-700">
+                <span>Subtotal:</span>
+                <span className="font-medium">{currencySymbol}{invoice.subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between py-2">
-                <span className="text-gray-600">Tax ({invoice.taxRate}%):</span>
-                <span className="font-medium">{invoice.currency} {invoice.taxAmount.toFixed(2)}</span>
+              <div className="flex justify-between py-2 text-gray-700">
+                <span>Tax ({invoice.taxRate}%):</span>
+                <span className="font-medium">{currencySymbol}{invoice.taxAmount.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between py-3 border-t-2 border-gray-200">
-                <span className="text-lg font-bold">Total:</span>
-                <span className="text-lg font-bold text-blue-600">{invoice.currency} {invoice.total.toFixed(2)}</span>
+              <div className="flex justify-between py-3 border-t-2 border-gray-200 text-xl font-bold text-gray-900">
+                <span>Total:</span>
+                <span>{currencySymbol}{invoice.total.toFixed(2)}</span>
               </div>
             </div>
           </div>
 
           {/* Notes */}
           {invoice.notes && (
-            <div className="mb-6 p-4 bg-gray-50 rounded">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Notes:</h4>
-              <p className="text-sm text-gray-600">{invoice.notes}</p>
-            </div>
-          )}
-
-          {/* Payment Instructions */}
-          {invoice.paymentInstructions && (
-            <div className="p-4 bg-blue-50 rounded">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Payment Instructions:</h4>
-              <p className="text-sm text-blue-800">{invoice.paymentInstructions}</p>
+            <div className="border-t border-gray-200 pt-6">
+              <div className="text-sm font-semibold text-gray-700 mb-2">Notes</div>
+              <div className="text-gray-600 whitespace-pre-wrap">{invoice.notes}</div>
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
-
-export default InvoiceDetail;

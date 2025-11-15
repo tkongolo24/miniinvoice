@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getInvoice, updateInvoice } from '../utils/api';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function EditInvoice() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
@@ -22,7 +24,6 @@ export default function EditInvoice() {
     status: 'unpaid'
   });
 
-  // Show toast notification
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => {
@@ -30,21 +31,18 @@ export default function EditInvoice() {
     }, 3000);
   };
 
-  // Load existing invoice data
   useEffect(() => {
     const loadInvoice = async () => {
       try {
         const response = await getInvoice(id);
         const invoice = response.data;
         
-        // Check if invoice is paid - prevent editing
         if (invoice.status === 'paid') {
-          showToast('Cannot edit paid invoices. This protects your customer records.', 'error');
+          showToast(t('cannotEditPaid'), 'error');
           setTimeout(() => navigate('/dashboard'), 2000);
           return;
         }
         
-        // Format dates for input fields (YYYY-MM-DD)
         const formattedInvoice = {
           invoiceNumber: invoice.invoiceNumber || '',
           clientName: invoice.clientName || '',
@@ -62,13 +60,13 @@ export default function EditInvoice() {
         setLoading(false);
       } catch (error) {
         console.error('Error loading invoice:', error);
-        showToast('Failed to load invoice. Redirecting...', 'error');
+        showToast(t('failedToLoad'), 'error');
         setTimeout(() => navigate('/dashboard'), 2000);
       }
     };
 
     loadInvoice();
-  }, [id, navigate]);
+  }, [id, navigate, t]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -105,7 +103,6 @@ export default function EditInvoice() {
     setSaving(true);
 
     try {
-      // Calculate total before sending
       const total = calculateSubtotal();
       const dataToSend = {
         ...formData,
@@ -113,14 +110,14 @@ export default function EditInvoice() {
       };
 
       await updateInvoice(id, dataToSend);
-      showToast('Invoice updated successfully!', 'success');
+      showToast(t('invoiceUpdated'), 'success');
       
       setTimeout(() => {
         navigate('/dashboard');
       }, 1500);
     } catch (error) {
       console.error('Error updating invoice:', error);
-      showToast(error.message || 'Failed to update invoice. Please try again.', 'error');
+      showToast(error.message || t('failedToUpdate'), 'error');
       setSaving(false);
     }
   };
@@ -130,7 +127,7 @@ export default function EditInvoice() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading invoice...</p>
+          <p className="mt-4 text-gray-600">{t('loadingInvoice')}</p>
         </div>
       </div>
     );
@@ -138,7 +135,6 @@ export default function EditInvoice() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      {/* Toast Notification */}
       {toast.show && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setToast({ show: false, message: '', type: '' })}></div>
@@ -167,23 +163,22 @@ export default function EditInvoice() {
 
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-6 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Edit Invoice</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('editInvoice')}</h1>
           <button
             onClick={() => navigate('/dashboard')}
             className="text-blue-600 hover:text-blue-800"
           >
-            ← Back to Dashboard
+            ← {t('backToDashboard')}
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-          {/* Invoice Details Section */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">Invoice Details</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">{t('invoiceDetails')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Invoice Number *
+                  {t('invoiceNumberLabel')} *
                 </label>
                 <input
                   type="text"
@@ -197,7 +192,7 @@ export default function EditInvoice() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Currency *
+                  {t('currency')} *
                 </label>
                 <select
                   name="currency"
@@ -219,7 +214,7 @@ export default function EditInvoice() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Issue Date *
+                  {t('issueDate')} *
                 </label>
                 <input
                   type="date"
@@ -233,7 +228,7 @@ export default function EditInvoice() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Due Date *
+                  {t('dueDate')} *
                 </label>
                 <input
                   type="date"
@@ -247,7 +242,7 @@ export default function EditInvoice() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status *
+                  {t('statusLabel')} *
                 </label>
                 <select
                   name="status"
@@ -256,21 +251,20 @@ export default function EditInvoice() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="unpaid">Unpaid</option>
-                  <option value="paid">Paid</option>
-                  <option value="overdue">Overdue</option>
+                  <option value="unpaid">{t('unpaid')}</option>
+                  <option value="paid">{t('paid')}</option>
+                  <option value="overdue">{t('overdue')}</option>
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Client Information Section */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">Client Information</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">{t('clientInformation')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Client Name *
+                  {t('clientName')} *
                 </label>
                 <input
                   type="text"
@@ -284,7 +278,7 @@ export default function EditInvoice() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Client Email *
+                  {t('clientEmail')} *
                 </label>
                 <input
                   type="email"
@@ -298,7 +292,7 @@ export default function EditInvoice() {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Client Address
+                  {t('clientAddress')}
                 </label>
                 <textarea
                   name="clientAddress"
@@ -311,16 +305,15 @@ export default function EditInvoice() {
             </div>
           </div>
 
-          {/* Items Section */}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">Items</h2>
+              <h2 className="text-xl font-semibold text-gray-800">{t('items')}</h2>
               <button
                 type="button"
                 onClick={addItem}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
               >
-                + Add Item
+                + {t('addItem')}
               </button>
             </div>
 
@@ -329,21 +322,21 @@ export default function EditInvoice() {
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                   <div className="md:col-span-5">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description *
+                      {t('description')} *
                     </label>
                     <input
                       type="text"
                       value={item.description}
                       onChange={(e) => handleItemChange(index, 'description', e.target.value)}
                       required
-                      placeholder="E.g. Web design services"
+                      placeholder={t('descriptionPlaceholder')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Quantity *
+                      {t('quantity')} *
                     </label>
                     <input
                       type="number"
@@ -358,7 +351,7 @@ export default function EditInvoice() {
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Rate *
+                      {t('rate')} *
                     </label>
                     <input
                       type="number"
@@ -373,7 +366,7 @@ export default function EditInvoice() {
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Amount
+                      {t('amount')}
                     </label>
                     <div className="px-3 py-2 bg-gray-100 rounded-md text-gray-700 font-semibold">
                       {(Number(item.quantity) * Number(item.rate)).toFixed(2)}
@@ -391,17 +384,16 @@ export default function EditInvoice() {
                           : 'bg-red-600 text-white hover:bg-red-700'
                       }`}
                     >
-                      Remove
+                      {t('remove')}
                     </button>
                   </div>
                 </div>
               </div>
             ))}
 
-            {/* Total */}
             <div className="bg-blue-50 p-4 rounded-md">
               <div className="flex justify-between items-center text-lg font-semibold">
-                <span>Total:</span>
+                <span>{t('total')}:</span>
                 <span className="text-blue-600">
                   {formData.currency} {calculateSubtotal().toFixed(2)}
                 </span>
@@ -409,22 +401,20 @@ export default function EditInvoice() {
             </div>
           </div>
 
-          {/* Notes Section */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes (Optional)
+              {t('notesOptional')}
             </label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
               rows="4"
-              placeholder="Additional notes or payment terms..."
+              placeholder={t('notesPlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Submit Buttons */}
           <div className="flex gap-4">
             <button
               type="submit"
@@ -435,14 +425,14 @@ export default function EditInvoice() {
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
             >
-              {saving ? 'Updating...' : 'Update Invoice'}
+              {saving ? t('updating') : t('updateInvoice')}
             </button>
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
               className="px-6 py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition font-semibold"
             >
-              Cancel
+              {t('cancel')}
             </button>
           </div>
         </form>
