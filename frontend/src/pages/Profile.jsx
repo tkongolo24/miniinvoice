@@ -23,13 +23,13 @@ function Profile() {
   const fetchProfile = async () => {
     try {
       const response = await getProfile();
-      const user = response.data.user;
+      const user = response.data;
       setFormData({
         companyName: user.companyName || '',
-        companyEmail: user.companyEmail || '',
-        companyPhone: user.companyPhone || '',
-        companyAddress: user.companyAddress || '',
-        defaultCurrency: user.defaultCurrency || 'RWF'
+        companyEmail: user.email || '',
+        companyPhone: user.phone || '',
+        companyAddress: user.address || '',
+        defaultCurrency: user.currency || 'RWF'
       });
     } catch (error) {
       setError('Failed to load profile');
