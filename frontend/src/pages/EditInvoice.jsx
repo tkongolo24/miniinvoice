@@ -16,12 +16,13 @@ export default function EditInvoice() {
     clientName: '',
     clientEmail: '',
     clientAddress: '',
-    issueDate: '',
+    dateIssued: '',
     dueDate: '',
-    items: [{ description: '', quantity: 1, rate: 0 }],
+    items: [{ description: '', quantity: 1, unitPrice: 0 }],
     notes: '',
     currency: 'RWF',
-    status: 'unpaid'
+    status: 'unpaid',
+    taxRate: 0
   });
 
   const showToast = (message, type = 'success') => {
@@ -48,12 +49,13 @@ export default function EditInvoice() {
           clientName: invoice.clientName || '',
           clientEmail: invoice.clientEmail || '',
           clientAddress: invoice.clientAddress || '',
-          issueDate: invoice.issueDate ? new Date(invoice.issueDate).toISOString().split('T')[0] : '',
+          dateIssued: invoice.dateIssued ? new Date(invoice.dateIssued).toISOString().split('T')[0] : '',
           dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '',
-          items: invoice.items || [{ description: '', quantity: 1, rate: 0 }],
+          items: invoice.items || [{ description: '', quantity: 1, unitPrice: 0 }],
           notes: invoice.notes || '',
           currency: invoice.currency || 'RWF',
-          status: invoice.status || 'unpaid'
+          status: invoice.status || 'unpaid',
+          taxRate: invoice.taxRate || 0
         };
         
         setFormData(formattedInvoice);
@@ -81,7 +83,7 @@ export default function EditInvoice() {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { description: '', quantity: 1, rate: 0 }]
+      items: [...formData.items, { description: '', quantity: 1, unitPrice: 0 }]
     });
   };
 
@@ -94,8 +96,17 @@ export default function EditInvoice() {
 
   const calculateSubtotal = () => {
     return formData.items.reduce((sum, item) => {
-      return sum + (Number(item.quantity) * Number(item.rate));
+      return sum + (Number(item.quantity) * Number(item.unitPrice));
     }, 0);
+  };
+
+  const calculateTax = () => {
+    const subtotal = calculateSubtotal();
+    return (subtotal * Number(formData.taxRate)) / 100;
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateTax();
   };
 
   const handleSubmit = async (e) => {
@@ -103,15 +114,19 @@ export default function EditInvoice() {
     setSaving(true);
 
     try {
-      const total = calculateSubtotal();
+      const subtotal = calculateSubtotal();
+      const taxAmount = calculateTax();
+      const total = calculateTotal();
       const dataToSend = {
         ...formData,
+        subtotal: subtotal,
+        taxAmount: taxAmount,
         total: total
       };
 
       await updateInvoice(id, dataToSend);
       showToast(t('invoiceUpdated'), 'success');
-      
+
       setTimeout(() => {
         navigate('/dashboard');
       }, 1500);
@@ -218,8 +233,8 @@ export default function EditInvoice() {
                 </label>
                 <input
                   type="date"
-                  name="issueDate"
-                  value={formData.issueDate}
+                  name="dateIssued"
+                  value={formData.dateIssued}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -355,8 +370,8 @@ export default function EditInvoice() {
                     </label>
                     <input
                       type="number"
-                      value={item.rate}
-                      onChange={(e) => handleItemChange(index, 'rate', parseFloat(e.target.value) || 0)}
+                      value={item.unitPrice}
+                      onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                       required
                       min="0"
                       step="0.01"
@@ -369,7 +384,7 @@ export default function EditInvoice() {
                       {t('amount')}
                     </label>
                     <div className="px-3 py-2 bg-gray-100 rounded-md text-gray-700 font-semibold">
-                      {(Number(item.quantity) * Number(item.rate)).toFixed(2)}
+                      {(Number(item.quantity) * Number(item.unitPrice)).toFixed(2)}
                     </div>
                   </div>
 
@@ -391,11 +406,36 @@ export default function EditInvoice() {
               </div>
             ))}
 
-            <div className="bg-blue-50 p-4 rounded-md">
-              <div className="flex justify-between items-center text-lg font-semibold">
+            <div className="bg-blue-50 p-4 rounded-md space-y-2">
+              <div className="flex justify-between items-center">
+                <span>{t('subtotal')}:</span>
+                <span className="font-semibold">
+                  {formData.currency} {calculateSubtotal().toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span>{t('tax')}:</span>
+                  <input
+                    type="number"
+                    name="taxRate"
+                    value={formData.taxRate}
+                    onChange={handleChange}
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                  />
+                  <span className="text-sm">%</span>
+                </div>
+                <span className="font-semibold">
+                  {formData.currency} {calculateTax().toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-lg font-semibold pt-2 border-t border-blue-200">
                 <span>{t('total')}:</span>
                 <span className="text-blue-600">
-                  {formData.currency} {calculateSubtotal().toFixed(2)}
+                  {formData.currency} {calculateTotal().toFixed(2)}
                 </span>
               </div>
             </div>

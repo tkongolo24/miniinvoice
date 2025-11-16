@@ -11,7 +11,10 @@ const auth = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-in-production');
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: 'Server configuration error: JWT_SECRET not set' });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Find user
     const user = await User.findById(decoded.userId).select('-password');

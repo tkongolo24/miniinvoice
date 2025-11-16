@@ -10,10 +10,9 @@ function Profile() {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     companyName: '',
-    companyEmail: '',
-    companyPhone: '',
-    companyAddress: '',
-    defaultCurrency: 'RWF'
+    phone: '',
+    address: '',
+    currency: 'RWF'
   });
 
   useEffect(() => {
@@ -23,13 +22,12 @@ function Profile() {
   const fetchProfile = async () => {
     try {
       const response = await getProfile();
-      const user = response.data.user;
+      const user = response.data;
       setFormData({
         companyName: user.companyName || '',
-        companyEmail: user.companyEmail || '',
-        companyPhone: user.companyPhone || '',
-        companyAddress: user.companyAddress || '',
-        defaultCurrency: user.defaultCurrency || 'RWF'
+        phone: user.phone || '',
+        address: user.address || '',
+        currency: user.currency || 'RWF'
       });
     } catch (error) {
       setError('Failed to load profile');
@@ -115,37 +113,24 @@ function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company Email
-              </label>
-              <input
-                type="email"
-                value={formData.companyEmail}
-                onChange={(e) => setFormData({ ...formData, companyEmail: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="company@example.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company Phone
+                Phone
               </label>
               <input
                 type="tel"
-                value={formData.companyPhone}
-                onChange={(e) => setFormData({ ...formData, companyPhone: e.target.value })}
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="+250 xxx xxx xxx"
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company Address
+                Address
               </label>
               <textarea
-                value={formData.companyAddress}
-                onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })}
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 rows="3"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Street address, city, country"
@@ -157,8 +142,8 @@ function Profile() {
                 Default Currency
               </label>
               <select
-                value={formData.defaultCurrency}
-                onChange={(e) => setFormData({ ...formData, defaultCurrency: e.target.value })}
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="RWF">RWF - Rwandan Franc</option>

@@ -8,8 +8,7 @@ const invoiceSchema = new mongoose.Schema({
   },
   invoiceNumber: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   clientName: {
     type: String,
@@ -69,12 +68,16 @@ const invoiceSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['paid', 'unpaid'],
+    enum: ['paid', 'unpaid', 'overdue'],
     default: 'unpaid'
   },
   notes: {
     type: String,
     default: ''
+  },
+  currency: {
+    type: String,
+    default: 'USD'
   },
   template: {
     type: String,
@@ -84,5 +87,8 @@ const invoiceSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Create compound index for invoice number uniqueness per user
+invoiceSchema.index({ user: 1, invoiceNumber: 1 }, { unique: true });
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

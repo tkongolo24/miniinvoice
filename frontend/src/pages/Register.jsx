@@ -16,7 +16,7 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await register({ email, password, companyName });
+      const response = await register({ email, password, name: companyName });
       localStorage.setItem('token', response.data.token);
       navigate('/dashboard');
     } catch (err) {
