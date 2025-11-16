@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getInvoices, deleteInvoice, updateInvoiceStatus } from '../utils/api';
-import { useLanguage } from '../contexts/LanguageContext';
+import axios from 'axios';
 
-function Dashboard({ setToken }) {
+const Dashboard = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState('all');
   const navigate = useNavigate();
-  const { t } = useLanguage();
 
   useEffect(() => {
     fetchInvoices();
@@ -15,175 +15,307 @@ function Dashboard({ setToken }) {
 
   const fetchInvoices = async () => {
     try {
-      const response = await getInvoices();
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/invoices`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setInvoices(response.data);
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
-    } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm(t('deleteConfirm'))) {
-      try {
-        await deleteInvoice(id);
-        setInvoices(invoices.filter(inv => inv._id !== id));
-      } catch (error) {
-        alert(t('failedToDelete'));
+    } catch (err) {
+      setError('Failed to load invoices');
+      setLoading(false);
+      if (err.response?.status === 401) {
+        navigate('/login');
       }
     }
   };
 
-  const handleStatusChange = async (id, newStatus) => {
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+
     try {
-      await updateInvoiceStatus(id, newStatus);
-      setInvoices(invoices.map(inv => 
-        inv._id === id ? { ...inv, status: newStatus } : inv
-      ));
-    } catch (error) {
-      alert(t('failedToUpdateStatus'));
+      const token = localStorage.getItem('token');
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/invoices/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setInvoices(invoices.filter((inv) => inv._id !== id));
+    } catch (err) {
+      alert('Failed to delete invoice');
     }
   };
 
-  const handleDuplicate = (invoice) => {
-    navigate('/create-invoice', { state: { duplicateFrom: invoice } });
-  };
+  const handleDuplicate = async (invoice) => {
+    try {
+      const token = localStorage.getItem('token');
+      const duplicateData = {
+        ...invoice,
+        invoiceNumber: `${invoice.invoiceNumber}-COPY`,
+        date: new Date().toISOString().split('T')[0],
+      };
+      delete duplicateData._id;
+      delete duplicateData.__v;
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'paid': return 'bg-green-100 text-green-800';
-      case 'unpaid': return 'bg-yellow-100 text-yellow-800';
-      case 'overdue': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/invoices`,
+        duplicateData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setInvoices([response.data, ...invoices]);
+    } catch (err) {
+      alert('Failed to duplicate invoice');
     }
+  };
+
+  const filteredInvoices = invoices.filter((invoice) => {
+    if (filter === 'all') return true;
+    return invoice.status === filter;
+  });
+
+  const stats = {
+    total: invoices.length,
+    paid: invoices.filter((inv) => inv.status === 'paid').length,
+    unpaid: invoices.filter((inv) => inv.status === 'unpaid').length,
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-gray-600">{t('loading')}</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading invoices...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-blue-600">{t('appName')}</h1>
-          <div className="flex items-center gap-4">
-            <Link to="/settings" className="text-sm text-gray-600 hover:text-gray-900">
-              Settings
-            </Link>
-            <Link to="/profile" className="text-sm text-gray-600 hover:text-gray-900">
-              {t('profile')}
-            </Link>
-            <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-gray-900">
-              {t('logout')}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">{t('yourInvoices')}</h2>
-          <Link
-            to="/create-invoice"
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            + {t('createInvoice')}
-          </Link>
-        </div>
-
-        {invoices.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-gray-600 mb-4">{t('noInvoicesYet')}</p>
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your invoices</p>
+            </div>
             <Link
               to="/create-invoice"
-              className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+              className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm sm:text-base text-center"
             >
-              {t('createFirstInvoice')}
+              + New Invoice
             </Link>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <p className="text-sm text-gray-600 mb-1">Total Invoices</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <p className="text-sm text-gray-600 mb-1">Paid</p>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600">{stats.paid}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <p className="text-sm text-gray-600 mb-1">Unpaid</p>
+            <p className="text-2xl sm:text-3xl font-bold text-orange-600">{stats.unpaid}</p>
+          </div>
+        </div>
+
+        {/* Filter Buttons */}
+        <div className="bg-white rounded-lg shadow mb-6">
+          <div className="p-4 border-b">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All ({stats.total})
+              </button>
+              <button
+                onClick={() => setFilter('paid')}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === 'paid'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Paid ({stats.paid})
+              </button>
+              <button
+                onClick={() => setFilter('unpaid')}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === 'unpaid'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Unpaid ({stats.unpaid})
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('invoiceNumber')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('client')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('total')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('status')}</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('actions')}</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice #</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {invoices.map((invoice) => (
-                  <tr key={invoice._id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {invoice.invoiceNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {invoice.clientName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {invoice.currency} {invoice.total.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={invoice.status}
-                        onChange={(e) => handleStatusChange(invoice._id, e.target.value)}
-                        className={`text-xs px-2 py-1 rounded-full ${getStatusColor(invoice.status)}`}
-                      >
-                        <option value="unpaid">{t('unpaid')}</option>
-                        <option value="paid">{t('paid')}</option>
-                        <option value="overdue">{t('overdue')}</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <Link
-                        to={`/invoice/${invoice._id}`}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                      >
-                        {t('view')}
-                      </Link>
-                      {invoice.status !== 'paid' && (
-                        <button
-                          onClick={() => navigate(`/edit-invoice/${invoice._id}`)}
-                          className="text-purple-600 hover:text-purple-900 mr-3"
-                        >
-                          {t('edit')}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDuplicate(invoice)}
-                        className="text-green-600 hover:text-green-900 mr-3"
-                      >
-                        {t('duplicate')}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(invoice._id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        {t('delete')}
-                      </button>
+              <tbody className="divide-y divide-gray-200">
+                {filteredInvoices.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                      No invoices found. Create your first invoice!
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredInvoices.map((invoice) => (
+                    <tr key={invoice._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {invoice.invoiceNumber}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{invoice.clientName}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {new Date(invoice.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        ${invoice.total?.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            invoice.status === 'paid'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-orange-100 text-orange-800'
+                          }`}
+                        >
+                          {invoice.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          <Link
+                            to={`/invoice/${invoice._id}`}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            View
+                          </Link>
+                          <Link
+                            to={`/edit-invoice/${invoice._id}`}
+                            className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDuplicate(invoice)}
+                            className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                          >
+                            Duplicate
+                          </button>
+                          <button
+                            onClick={() => handleDelete(invoice._id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        )}
-      </main>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden divide-y divide-gray-200">
+            {filteredInvoices.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                No invoices found. Create your first invoice!
+              </div>
+            ) : (
+              filteredInvoices.map((invoice) => (
+                <div key={invoice._id} className="p-4 hover:bg-gray-50">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">{invoice.invoiceNumber}</p>
+                      <p className="text-sm text-gray-600 mt-1">{invoice.clientName}</p>
+                    </div>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        invoice.status === 'paid'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-orange-100 text-orange-800'
+                      }`}
+                    >
+                      {invoice.status}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mb-3">
+                    <p className="text-sm text-gray-600">
+                      {new Date(invoice.date).toLocaleDateString()}
+                    </p>
+                    <p className="font-semibold text-gray-900">${invoice.total?.toFixed(2)}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to={`/invoice/${invoice._id}`}
+                      className="flex-1 text-center bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium"
+                    >
+                      View
+                    </Link>
+                    <Link
+                      to={`/edit-invoice/${invoice._id}`}
+                      className="flex-1 text-center bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm font-medium"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDuplicate(invoice)}
+                      className="flex-1 bg-purple-100 text-purple-700 px-3 py-2 rounded text-sm font-medium"
+                    >
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => handleDelete(invoice._id)}
+                      className="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
+};
 
 export default Dashboard;
