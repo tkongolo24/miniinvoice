@@ -43,19 +43,19 @@ api.interceptors.response.use(
 );
 
 // Auth
-export const register = (userData) => api.post('/auth/register', userData);
-export const login = (credentials) => api.post('/auth/login', credentials);
+export const register = (userData) => api.post('/api/auth/register', userData);
+export const login = (credentials) => api.post('/api/auth/login', credentials);
 
 // Profile
-export const getProfile = () => api.get('/auth/profile');
-export const updateProfile = (profileData) => api.put('/auth/profile', profileData);
+export const getProfile = () => api.get('/api/auth/profile');
+export const updateProfile = (profileData) => api.put('/api/auth/profile', profileData);
 
 // Invoices
-export const getInvoices = () => api.get('/invoices');
-export const getInvoice = (id) => api.get(`/invoices/${id}`);
-export const createInvoice = (invoiceData) => api.post('/invoices', invoiceData);
-export const updateInvoice = (id, invoiceData) => api.put(`/invoices/${id}`, invoiceData);
-export const updateInvoiceStatus = (id, status) => api.put(`/invoices/${id}`, { status });
-export const deleteInvoice = (id) => api.delete(`/invoices/${id}`);
+export const getInvoices = () => api.get('/api/invoices');
+export const getInvoice = (id) => api.get(`/api/invoices/${id}`);
+export const createInvoice = (invoiceData) => api.post('/api/invoices', invoiceData);
+export const updateInvoice = (id, invoiceData) => api.put(`/api/invoices/${id}`, invoiceData);
+export const updateInvoiceStatus = (id, status) => api.put(`/api/invoices/${id}`, { status });
+export const deleteInvoice = (id) => api.delete(`/api/invoices/${id}`);
 
 export default api;

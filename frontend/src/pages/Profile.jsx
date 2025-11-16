@@ -23,6 +23,14 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
+      const response = await getProfile();
+      const user = response.data;
+      setFormData({
+        companyName: user.companyName || '',
+        companyEmail: user.email || '',
+        companyPhone: user.phone || '',
+        companyAddress: user.address || '',
+        defaultCurrency: user.currency || 'RWF'
       const token = localStorage.getItem('token');
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/api/users/profile`,
