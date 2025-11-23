@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const Invoice = require('../models/Invoice');
+const Invoice = require('../models/invoice');
 const auth = require('../middleware/auth');
 
 // Get all user's invoices
@@ -36,6 +36,42 @@ router.get('/:id', auth, async (req, res) => {
     res.json(invoice);
   } catch (error) {
     console.error('Get invoice error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update invoice status - PATCH /api/invoices/:id/status
+router.patch('/:id/status', auth, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+    
+    // Validate status
+    if (!['paid', 'unpaid'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Must be paid or unpaid' });
+    }
+
+    // Find invoice
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      user: req.userId
+    });
+    
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Update status
+    invoice.status = status;
+    await invoice.save();
+
+    res.json(invoice);
+  } catch (error) {
+    console.error('Status update error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -28,7 +28,10 @@ app.use(mongoSanitize()); // Prevent MongoDB injection
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? process.env.FRONTEND_URL 
-    : 'http://localhost:5173',
+    : [
+        'http://localhost:5173',
+        'https://gp5mjphq-5173.uks1.devtunnels.ms'
+      ],
   credentials: true
 };
 app.use(cors(corsOptions));
@@ -102,4 +105,16 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Catch unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Promise Rejection:', err);
+  // Don't exit in production, just log
+});
+
+// Catch uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  // Don't exit in production, just log
 });

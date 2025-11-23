@@ -10,8 +10,8 @@ const InvoiceDetail = () => {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
-
   useEffect(() => {
     fetchInvoice();
   }, [id]);
@@ -70,22 +70,31 @@ const InvoiceDetail = () => {
     }
   };
 
+  const getCurrencySymbol = (currency) => {
+    const symbols = {
+      'RWF': 'RWF',
+      'KES': 'KES',
+      'NGN': 'NGN',
+    };
+    return symbols[currency] || 'RWF';
+  };
+
+  const addWatermark = (doc) => {
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Powered by MiniInvoice', 105, pageHeight - 10, { align: 'center' });
+  };
+
   const generatePDF = () => {
     if (!invoice) return;
-
-    const template = invoice.template || 'classic';
-    
-    if (template === 'modern') {
-      generateModernPDF();
-    } else if (template === 'elegant') {
-      generateElegantPDF();
-    } else {
-      generateClassicPDF();
-    }
+    generateClassicPDF();
   };
 
   const generateClassicPDF = () => {
     const doc = new jsPDF();
+    const currency = getCurrencySymbol(invoice.currency);
 
     // Header
     doc.setFontSize(24);
@@ -96,7 +105,7 @@ const InvoiceDetail = () => {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 35);
-    doc.text(`Date: ${new Date(invoice.date).toLocaleDateString()}`, 20, 42);
+    doc.text(`Date: ${new Date(invoice.dateIssued).toLocaleDateString()}`, 20, 42);
     doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 20, 49);
 
     // Client Info
@@ -116,8 +125,8 @@ const InvoiceDetail = () => {
     const tableData = invoice.items.map((item) => [
       item.description,
       item.quantity,
-      `$${item.price.toFixed(2)}`,
-      `$${(item.quantity * item.price).toFixed(2)}`,
+      `${currency} ${item.unitPrice.toFixed(2)}`,
+      `${currency} ${(item.quantity * item.unitPrice).toFixed(2)}`,
     ]);
 
     doc.autoTable({
@@ -130,12 +139,9 @@ const InvoiceDetail = () => {
 
     // Totals
     const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(10);
-    doc.text(`Subtotal: $${invoice.subtotal.toFixed(2)}`, 140, finalY);
-    doc.text(`Tax (${invoice.taxRate}%): $${invoice.tax.toFixed(2)}`, 140, finalY + 7);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
-    doc.text(`Total: $${invoice.total.toFixed(2)}`, 140, finalY + 17);
+    doc.text(`Total: ${currency} ${invoice.total.toFixed(2)}`, 140, finalY);
 
     // Notes
     if (invoice.notes) {
@@ -146,184 +152,8 @@ const InvoiceDetail = () => {
       doc.text(notesLines, 20, finalY + 37);
     }
 
-    doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
-  };
-
-  const generateModernPDF = () => {
-    const doc = new jsPDF();
-
-    // Modern minimalist design
-    doc.setFillColor(52, 73, 94);
-    doc.rect(0, 0, 210, 40, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INVOICE', 20, 25);
-
-    // Invoice Details (white on dark background)
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`#${invoice.invoiceNumber}`, 160, 20);
-    doc.text(new Date(invoice.date).toLocaleDateString(), 160, 27);
-
-    // Reset text color for body
-    doc.setTextColor(0, 0, 0);
-
-    // Client Info
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('BILL TO', 20, 55);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(invoice.clientName, 20, 62);
-    doc.text(invoice.clientEmail, 20, 68);
-
-    // Items Table - Modern style
-    const tableData = invoice.items.map((item) => [
-      item.description,
-      item.quantity,
-      `$${item.price.toFixed(2)}`,
-      `$${(item.quantity * item.price).toFixed(2)}`,
-    ]);
-
-    doc.autoTable({
-      startY: 85,
-      head: [['Description', 'Qty', 'Price', 'Amount']],
-      body: tableData,
-      theme: 'plain',
-      headStyles: { 
-        fillColor: [52, 73, 94],
-        textColor: [255, 255, 255],
-        fontSize: 11,
-        fontStyle: 'bold',
-      },
-      styles: { fontSize: 10 },
-    });
-
-    // Totals - Modern aligned
-    const finalY = doc.lastAutoTable.finalY + 15;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(130, finalY - 5, 190, finalY - 5);
-    
-    doc.setFontSize(10);
-    doc.text('Subtotal', 130, finalY);
-    doc.text(`$${invoice.subtotal.toFixed(2)}`, 190, finalY, { align: 'right' });
-    
-    doc.text(`Tax (${invoice.taxRate}%)`, 130, finalY + 7);
-    doc.text(`$${invoice.tax.toFixed(2)}`, 190, finalY + 7, { align: 'right' });
-    
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('TOTAL', 130, finalY + 17);
-    doc.text(`$${invoice.total.toFixed(2)}`, 190, finalY + 17, { align: 'right' });
-
-    if (invoice.notes) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(100, 100, 100);
-      doc.text('Notes:', 20, finalY + 30);
-      const notesLines = doc.splitTextToSize(invoice.notes, 170);
-      doc.text(notesLines, 20, finalY + 36);
-    }
-
-    doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
-  };
-
-  const generateElegantPDF = () => {
-    const doc = new jsPDF();
-
-    // Elegant header with subtle color
-    doc.setFillColor(240, 240, 245);
-    doc.rect(0, 0, 210, 50, 'F');
-
-    doc.setTextColor(75, 0, 130);
-    doc.setFontSize(32);
-    doc.setFont('times', 'italic');
-    doc.text('Invoice', 20, 30);
-
-    // Decorative line
-    doc.setDrawColor(75, 0, 130);
-    doc.setLineWidth(0.5);
-    doc.line(20, 38, 190, 38);
-
-    // Invoice details - elegant typography
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Invoice Number: ${invoice.invoiceNumber}`, 20, 60);
-    doc.text(`Issue Date: ${new Date(invoice.date).toLocaleDateString()}`, 20, 66);
-    doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 20, 72);
-
-    // Client section
-    doc.setFillColor(250, 250, 252);
-    doc.rect(15, 82, 85, 35, 'F');
-    
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(75, 0, 130);
-    doc.text('BILLING TO', 20, 90);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    doc.text(invoice.clientName, 20, 98);
-    doc.text(invoice.clientEmail, 20, 104);
-
-    // Items Table - Elegant style
-    const tableData = invoice.items.map((item) => [
-      item.description,
-      item.quantity,
-      `$${item.price.toFixed(2)}`,
-      `$${(item.quantity * item.price).toFixed(2)}`,
-    ]);
-
-    doc.autoTable({
-      startY: 125,
-      head: [['Description', 'Quantity', 'Unit Price', 'Total']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: { 
-        fillColor: [75, 0, 130],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-      },
-      styles: { 
-        fontSize: 9,
-        cellPadding: 5,
-      },
-      alternateRowStyles: {
-        fillColor: [250, 250, 252],
-      },
-    });
-
-    // Totals section - Elegant box
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFillColor(240, 240, 245);
-    doc.rect(125, finalY, 65, 35, 'F');
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Subtotal:', 130, finalY + 8);
-    doc.text(`$${invoice.subtotal.toFixed(2)}`, 185, finalY + 8, { align: 'right' });
-    
-    doc.text(`Tax (${invoice.taxRate}%):`, 130, finalY + 15);
-    doc.text(`$${invoice.tax.toFixed(2)}`, 185, finalY + 15, { align: 'right' });
-    
-    doc.setFont('times', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(75, 0, 130);
-    doc.text('Total Due:', 130, finalY + 25);
-    doc.text(`$${invoice.total.toFixed(2)}`, 185, finalY + 25, { align: 'right' });
-
-    if (invoice.notes) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
-      doc.text('Additional Notes:', 20, finalY + 45);
-      const notesLines = doc.splitTextToSize(invoice.notes, 170);
-      doc.text(notesLines, 20, finalY + 51);
-    }
+    // Add watermark
+    addWatermark(doc);
 
     doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
   };
@@ -373,7 +203,7 @@ const InvoiceDetail = () => {
                 Invoice {invoice.invoiceNumber}
               </h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">
-                Created on {new Date(invoice.date).toLocaleDateString()}
+                Created on {new Date(invoice.dateIssued).toLocaleDateString()}
               </p>
             </div>
             
@@ -398,6 +228,8 @@ const InvoiceDetail = () => {
           <div className="mb-6 pb-4 border-b">
             <p className="text-sm text-gray-600">
               Template: <span className="font-medium capitalize">{invoice.template || 'Classic'}</span>
+              {' | '}
+              Currency: <span className="font-medium">{getCurrencySymbol(invoice.currency)}</span>
             </p>
           </div>
 
@@ -421,15 +253,11 @@ const InvoiceDetail = () => {
               <div className="space-y-2 text-sm sm:text-base">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Invoice Date:</span>
-                  <span className="font-medium">{new Date(invoice.date).toLocaleDateString()}</span>
+                  <span className="font-medium">{new Date(invoice.dateIssued).toLocaleDateString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Due Date:</span>
                   <span className="font-medium">{new Date(invoice.dueDate).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax Rate:</span>
-                  <span className="font-medium">{invoice.taxRate}%</span>
                 </div>
               </div>
             </div>
@@ -464,10 +292,10 @@ const InvoiceDetail = () => {
                       <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
                       <td className="px-4 py-3 text-sm text-center text-gray-700">{item.quantity}</td>
                       <td className="px-4 py-3 text-sm text-right text-gray-700">
-                        ${item.price.toFixed(2)}
+                        {getCurrencySymbol(invoice.currency)} {item.unitPrice.toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
-                        ${(item.quantity * item.price).toFixed(2)}
+                        {getCurrencySymbol(invoice.currency)} {(item.quantity * item.unitPrice).toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -487,11 +315,11 @@ const InvoiceDetail = () => {
                     </div>
                     <div>
                       <span className="text-gray-600">Price:</span>
-                      <p className="font-medium">${item.price.toFixed(2)}</p>
+                      <p className="font-medium">{getCurrencySymbol(invoice.currency)} {item.unitPrice.toFixed(2)}</p>
                     </div>
                     <div>
                       <span className="text-gray-600">Total:</span>
-                      <p className="font-medium">${(item.quantity * item.price).toFixed(2)}</p>
+                      <p className="font-medium">{getCurrencySymbol(invoice.currency)} {(item.quantity * item.unitPrice).toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
@@ -503,17 +331,9 @@ const InvoiceDetail = () => {
           <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
             <div className="space-y-2 text-sm sm:text-base max-w-sm ml-auto">
               <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">${invoice.subtotal?.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tax ({invoice.taxRate}%):</span>
-                <span className="font-medium">${invoice.tax?.toFixed(2)}</span>
-              </div>
-              <div className="border-t pt-2 flex justify-between">
                 <span className="text-lg font-semibold text-gray-900">Total:</span>
                 <span className="text-lg font-bold text-blue-600">
-                  ${invoice.total?.toFixed(2)}
+                  {getCurrencySymbol(invoice.currency)} {invoice.total?.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -531,43 +351,51 @@ const InvoiceDetail = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex gap-3">
           <button
             onClick={generatePDF}
-            className="flex-1 sm:flex-none bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base"
+            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base"
           >
             📄 Download PDF
           </button>
-          
-          <Link
-            to={`/edit-invoice/${invoice._id}`}
-            className="flex-1 sm:flex-none bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-medium text-center text-sm sm:text-base"
-          >
-            ✏️ Edit Invoice
-          </Link>
-          
-          <button
-            onClick={toggleStatus}
-            disabled={updatingStatus}
-            className={`flex-1 sm:flex-none px-6 py-3 rounded-lg transition font-medium text-sm sm:text-base ${
-              invoice.status === 'paid'
-                ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                : 'bg-green-100 text-green-700 hover:bg-green-200'
-            } disabled:opacity-50`}
-          >
-            {updatingStatus
-              ? '...'
-              : invoice.status === 'paid'
-              ? 'Mark Unpaid'
-              : 'Mark Paid'}
-          </button>
-          
-          <button
-            onClick={handleDelete}
-            className="flex-1 sm:flex-none bg-red-100 text-red-700 px-6 py-3 rounded-lg hover:bg-red-200 transition font-medium text-sm sm:text-base"
-          >
-            🗑️ Delete
-          </button>
+
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 transition font-medium text-sm sm:text-base"
+            >
+              ⋮
+            </button>
+    
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                <button
+                  onClick={() => {
+                    toggleStatus();
+                    setShowMenu(false);
+                  }}
+                  disabled={updatingStatus}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                >
+                  {updatingStatus
+                    ? '...'
+                    : invoice.status === 'paid'
+                    ? '○ Mark Unpaid'
+                    : '✓ Mark Paid'}
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    handleDelete();
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                >
+                  🗑️ Delete Invoice
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -59,7 +59,7 @@ const invoiceSchema = new mongoose.Schema({
   },
   taxAmount: {
     type: Number,
-    required: true,
+    default: 0,
     min: 0
   },
   total: {

@@ -33,6 +33,11 @@ const Dashboard = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this invoice?')) return;
 
@@ -53,7 +58,7 @@ const Dashboard = () => {
       const duplicateData = {
         ...invoice,
         invoiceNumber: `${invoice.invoiceNumber}-COPY`,
-        date: new Date().toISOString().split('T')[0],
+        dateIssued: new Date().toISOString().split('T')[0],
       };
       delete duplicateData._id;
       delete duplicateData.__v;
@@ -69,6 +74,16 @@ const Dashboard = () => {
     } catch (err) {
       alert('Failed to duplicate invoice');
     }
+  };
+
+  const getCurrencySymbol = (currency) => {
+    const symbols = {
+      'RWF': 'RFW',
+      'KES': 'KSH',
+      'NGN': 'NGN',
+      'USD': 'USD',
+    };
+    return symbols[currency] || 'USD';
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
@@ -103,12 +118,20 @@ const Dashboard = () => {
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your invoices</p>
             </div>
-            <Link
-              to="/create-invoice"
-              className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm sm:text-base text-center"
-            >
-              + New Invoice
-            </Link>
+            <div className="flex gap-3">
+              <Link
+                to="/create-invoice"
+                className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm sm:text-base text-center"
+              >
+                + New Invoice
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="bg-gray-200 text-gray-700 px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-300 transition duration-200 font-medium text-sm sm:text-base"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -201,10 +224,10 @@ const Dashboard = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">{invoice.clientName}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {new Date(invoice.date).toLocaleDateString()}
+                        {new Date(invoice.dateIssued).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        ${invoice.total?.toFixed(2)}
+                        {getCurrencySymbol(invoice.currency)} {invoice.total?.toFixed(2)}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -278,9 +301,11 @@ const Dashboard = () => {
                   </div>
                   <div className="flex justify-between items-center mb-3">
                     <p className="text-sm text-gray-600">
-                      {new Date(invoice.date).toLocaleDateString()}
+                      {new Date(invoice.dateIssued).toLocaleDateString()}
                     </p>
-                    <p className="font-semibold text-gray-900">${invoice.total?.toFixed(2)}</p>
+                    <p className="font-semibold text-gray-900">
+                      {getCurrencySymbol(invoice.currency)} {invoice.total?.toFixed(2)}
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Link

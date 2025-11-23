@@ -1,157 +1,150 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
-const CreateInvoice = () => {
+const CURRENCIES = [
+  { code: 'RWF', symbol: 'RWF', name: 'Rwandan Franc' },
+  { code: 'KES', symbol: 'KSH', name: 'Kenyan Shilling' },
+  { code: 'NGN', symbol: 'NGN', name: 'Nigerian Naira' },
+];
+
+function CreateInvoice() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
-    invoiceNumber: '',
-    date: new Date().toISOString().split('T')[0],
-    dueDate: '',
+    invoiceNumber: `INV-${Date.now()}`,
     clientName: '',
     clientEmail: '',
     clientAddress: '',
-    items: [{ description: '', quantity: 1, price: 0 }],
-    taxRate: 0,
+    dateIssued: new Date().toISOString().split('T')[0],
+    dueDate: '',
+    items: [{ description: '', quantity: '', unitPrice: '' }],
     notes: '',
+    currency: 'RWF',
     template: 'classic',
-    setAsDefault: false,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    generateInvoiceNumber();
-    fetchDefaultTemplate();
-  }, []);
-
-  const generateInvoiceNumber = () => {
-    const num = 'INV-' + Date.now();
-    setFormData((prev) => ({ ...prev, invoiceNumber: num }));
-  };
-
-  const fetchDefaultTemplate = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/users/profile`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (response.data.defaultTemplate) {
-        setFormData((prev) => ({ ...prev, template: response.data.defaultTemplate }));
-      }
-    } catch (err) {
-      console.log('No default template found');
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value,
-    });
-  };
-
   const handleItemChange = (index, field, value) => {
-    const newItems = [...formData.items];
-    newItems[index][field] = value;
-    setFormData({ ...formData, items: newItems });
+    const updatedItems = [...formData.items];
+    updatedItems[index][field] = value;
+    setFormData((prev) => ({ ...prev, items: updatedItems }));
   };
 
   const addItem = () => {
-    setFormData({
-      ...formData,
-      items: [...formData.items, { description: '', quantity: 1, price: 0 }],
-    });
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, { description: '', quantity: '', unitPrice: '' }],
+    }));
   };
 
   const removeItem = (index) => {
-    const newItems = formData.items.filter((_, i) => i !== index);
-    setFormData({ ...formData, items: newItems });
+    if (formData.items.length > 1) {
+      setFormData((prev) => ({
+        ...prev,
+        items: prev.items.filter((_, i) => i !== index),
+      }));
+    }
   };
 
   const calculateSubtotal = () => {
-    return formData.items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-  };
-
-  const calculateTax = () => {
-    return calculateSubtotal() * (formData.taxRate / 100);
+    return formData.items.reduce(
+      (sum, item) => sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0),
+      0
+    );
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
+    return calculateSubtotal();
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.clientName.trim()) {
+      newErrors.clientName = 'Client name is required';
+    }
+    if (!formData.clientEmail.trim()) {
+      newErrors.clientEmail = 'Client email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.clientEmail)) {
+      newErrors.clientEmail = 'Invalid email format';
+    }
+    if (!formData.clientAddress.trim()) {
+      newErrors.clientAddress = 'Client address is required';
+    }
+
+    if (!formData.dueDate) {
+      newErrors.dueDate = 'Due date is required';
+    } else if (new Date(formData.dueDate) < new Date(formData.dateIssued)) {
+      newErrors.dueDate = 'Due date must be after issue date';
+    }
+
+    const invalidItems = formData.items.some(
+      (item) => !item.description.trim() || item.quantity < 1 || item.unitPrice <= 0
+    );
+    if (invalidItems) {
+      newErrors.items = 'All items must have description, valid quantity, and price';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
 
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const invoiceData = {
         ...formData,
         subtotal: calculateSubtotal(),
-        tax: calculateTax(),
         total: calculateTotal(),
       };
 
-      await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/invoices`,
-        invoiceData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      // Update default template if checkbox is checked
-      if (formData.setAsDefault) {
-        await axios.put(
-          `${import.meta.env.VITE_API_URL}/api/users/default-template`,
-          { defaultTemplate: formData.template },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-      }
-
+      await api.post('/api/invoices', invoiceData);
       navigate('/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create invoice');
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      setErrors({
+        submit: error.response?.data?.message || 'Failed to create invoice. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const getCurrencySymbol = () => {
+    const currency = CURRENCIES.find((c) => c.code === formData.currency);
+    return currency ? currency.symbol : '';
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-blue-600 hover:text-blue-700 mb-4 text-sm sm:text-base flex items-center"
-          >
-            ← Back to Dashboard
-          </button>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Create New Invoice</h1>
-        </div>
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white shadow-lg rounded-lg p-6 sm:p-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">Create Invoice</h1>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-            {error}
-          </div>
-        )}
+          {errors.submit && (
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {errors.submit}
+            </div>
+          )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8">
-          {/* Invoice Details */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Invoice Details</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Invoice Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Invoice Number
@@ -161,23 +154,43 @@ const CreateInvoice = () => {
                   name="invoiceNumber"
                   value={formData.invoiceNumber}
                   onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Invoice Date
+                  Currency
+                </label>
+                <select
+                  name="currency"
+                  value={formData.currency}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {CURRENCIES.map((curr) => (
+                    <option key={curr.code} value={curr.code}>
+                      {curr.code} - {curr.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date Issued
                 </label>
                 <input
                   type="date"
-                  name="date"
-                  value={formData.date}
+                  name="dateIssued"
+                  value={formData.dateIssued}
                   onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Due Date
@@ -187,242 +200,254 @@ const CreateInvoice = () => {
                   name="dueDate"
                   value={formData.dueDate}
                   onChange={handleChange}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.dueDate ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tax Rate (%)
-                </label>
-                <input
-                  type="number"
-                  name="taxRate"
-                  value={formData.taxRate}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                />
+                {errors.dueDate && (
+                  <p className="mt-1 text-sm text-red-600">{errors.dueDate}</p>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Template Selection */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Template</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Choose Template
-                </label>
-                <select
-                  name="template"
-                  value={formData.template}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                >
-                  <option value="classic">Classic - Traditional professional layout</option>
-                  <option value="modern">Modern - Clean minimalist design</option>
-                  <option value="elegant">Elegant - Sophisticated styling</option>
-                </select>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="setAsDefault"
-                  name="setAsDefault"
-                  checked={formData.setAsDefault}
-                  onChange={handleChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="setAsDefault" className="ml-2 text-sm text-gray-700">
-                  Set as my default template for future invoices
-                </label>
+            {/* Client Information */}
+            <div className="border-t border-gray-200 pt-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Client Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="clientName"
+                    value={formData.clientName}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.clientName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                  {errors.clientName && (
+                    <p className="mt-1 text-sm text-red-600">{errors.clientName}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client Email *
+                  </label>
+                  <input
+                    type="email"
+                    name="clientEmail"
+                    value={formData.clientEmail}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.clientEmail ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                  {errors.clientEmail && (
+                    <p className="mt-1 text-sm text-red-600">{errors.clientEmail}</p>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Client Address *
+                  </label>
+                  <textarea
+                    name="clientAddress"
+                    value={formData.clientAddress}
+                    onChange={handleChange}
+                    rows="3"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.clientAddress ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                  {errors.clientAddress && (
+                    <p className="mt-1 text-sm text-red-600">{errors.clientAddress}</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Client Information */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Client Information</h2>
-            <div className="grid grid-cols-1 gap-4 sm:gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Client Name
-                </label>
-                <input
-                  type="text"
-                  name="clientName"
-                  value={formData.clientName}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Client Email
-                </label>
-                <input
-                  type="email"
-                  name="clientEmail"
-                  value={formData.clientEmail}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Client Address
-                </label>
-                <textarea
-                  name="clientAddress"
-                  value={formData.clientAddress}
-                  onChange={handleChange}
-                  rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                />
-              </div>
-            </div>
-          </div>
+            {/* Items */}
+            <div className="border-t border-gray-200 pt-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Invoice Items</h2>
+              {errors.items && (
+                <p className="mb-4 text-sm text-red-600">{errors.items}</p>
+              )}
+              <div className="space-y-4">
+                {formData.items.map((item, index) => (
+                  <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                      <div className="md:col-span-5">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Description
+                        </label>
+                        <input
+                          type="text"
+                          value={item.description}
+                          onChange={(e) =>
+                            handleItemChange(index, 'description', e.target.value)
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Item description"
+                          required
+                        />
+                      </div>
 
-          {/* Items */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Items</h2>
-            <div className="space-y-4">
-              {formData.items.map((item, index) => (
-                <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <div className="grid grid-cols-1 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Description
-                      </label>
-                      <input
-                        type="text"
-                        value={item.description}
-                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                        required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
+                      <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Quantity
                         </label>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={item.quantity}
                           onChange={(e) =>
-                            handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)
+                            handleItemChange(index, 'quantity', e.target.value)
                           }
-                          min="1"
+                          placeholder="0"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                         />
                       </div>
-                      <div>
+
+                      <div className="md:col-span-3">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Price ($)
+                          Unit Price ({getCurrencySymbol()})
                         </label>
                         <input
-                          type="number"
-                          value={item.price}
+                          type="text"
+                          inputMode="decimal"
+                          value={item.unitPrice}
                           onChange={(e) =>
-                            handleItemChange(index, 'price', parseFloat(e.target.value) || 0)
+                            handleItemChange(index, 'unitPrice', e.target.value)
                           }
-                          min="0"
-                          step="0.01"
+                          placeholder="0.00"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                         />
                       </div>
-                    </div>
-                    <div className="flex justify-between items-center pt-2">
-                      <p className="text-sm font-medium text-gray-700">
-                        Subtotal: ${(item.quantity * item.price).toFixed(2)}
-                      </p>
-                      {formData.items.length > 1 && (
+
+                      <div className="md:col-span-2 flex items-end">
                         <button
                           type="button"
                           onClick={() => removeItem(index)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          disabled={formData.items.length === 1}
+                          className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                         >
                           Remove
                         </button>
-                      )}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 text-sm text-gray-600">
+                      Total: {getCurrencySymbol()}{' '}
+                      {(item.quantity * item.unitPrice).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
               <button
                 type="button"
                 onClick={addItem}
-                className="w-full py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition text-sm sm:text-base"
+                className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 + Add Item
               </button>
             </div>
-          </div>
 
-          {/* Notes */}
-          <div className="mb-6 sm:mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes (Optional)
-            </label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows="4"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-              placeholder="Payment terms, thank you note, etc."
-            />
-          </div>
-
-          {/* Summary */}
-          <div className="bg-gray-50 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-            <div className="space-y-2 text-sm sm:text-base">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tax ({formData.taxRate}%):</span>
-                <span className="font-medium">${calculateTax().toFixed(2)}</span>
-              </div>
-              <div className="border-t pt-2 flex justify-between">
-                <span className="text-lg font-semibold text-gray-900">Total:</span>
-                <span className="text-lg font-bold text-blue-600">
-                  ${calculateTotal().toFixed(2)}
-                </span>
+            {/* Notes */}
+            <div className="border-t border-gray-200 pt-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  rows="3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Payment terms, thank you note, etc."
+                />
               </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="w-full sm:w-auto px-6 py-2 sm:py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm sm:text-base order-2 sm:order-1"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full sm:flex-1 bg-blue-600 text-white px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base order-1 sm:order-2"
-            >
-              {loading ? 'Creating...' : 'Create Invoice'}
-            </button>
-          </div>
-        </form>
+            {/* Summary */}
+            <div className="border-t border-gray-200 pt-6">
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <div className="flex justify-between text-xl font-bold text-gray-900">
+                  <span>Total:</span>
+                  <span>
+                    {getCurrencySymbol()}{' '}
+                    {calculateTotal().toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex gap-4 justify-end">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Creating Invoice...
+                  </>
+                ) : (
+                  'Create Invoice'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
-};
+}
 
 export default CreateInvoice;
