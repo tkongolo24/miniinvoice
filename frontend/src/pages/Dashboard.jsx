@@ -52,30 +52,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleDuplicate = async (invoice) => {
-    try {
-      const token = localStorage.getItem('token');
-      const duplicateData = {
-        ...invoice,
-        invoiceNumber: `${invoice.invoiceNumber}-COPY`,
-        dateIssued: new Date().toISOString().split('T')[0],
-      };
-      delete duplicateData._id;
-      delete duplicateData.__v;
-
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/invoices`,
-        duplicateData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setInvoices([response.data, ...invoices]);
-    } catch (err) {
-      alert('Failed to duplicate invoice');
-    }
-  };
-
   const getCurrencySymbol = (currency) => {
     const symbols = {
       'RWF': 'RFW',
@@ -248,18 +224,6 @@ const Dashboard = () => {
                           >
                             View
                           </Link>
-                          <Link
-                            to={`/edit-invoice/${invoice._id}`}
-                            className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                          >
-                            Edit
-                          </Link>
-                          <button
-                            onClick={() => handleDuplicate(invoice)}
-                            className="text-purple-600 hover:text-purple-800 text-sm font-medium"
-                          >
-                            Duplicate
-                          </button>
                           <button
                             onClick={() => handleDelete(invoice._id)}
                             className="text-red-600 hover:text-red-800 text-sm font-medium"
@@ -314,18 +278,6 @@ const Dashboard = () => {
                     >
                       View
                     </Link>
-                    <Link
-                      to={`/edit-invoice/${invoice._id}`}
-                      className="flex-1 text-center bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm font-medium"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDuplicate(invoice)}
-                      className="flex-1 bg-purple-100 text-purple-700 px-3 py-2 rounded text-sm font-medium"
-                    >
-                      Copy
-                    </button>
                     <button
                       onClick={() => handleDelete(invoice._id)}
                       className="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded text-sm font-medium"
