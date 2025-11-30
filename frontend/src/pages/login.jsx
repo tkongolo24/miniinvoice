@@ -40,7 +40,7 @@ const Login = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-            MiniInvoice
+            BillKazi
           </h1>
           <h2 className="text-xl sm:text-2xl font-semibold text-gray-700">
             Welcome Back
@@ -112,7 +112,7 @@ const Login = () => {
 
         {/* Footer */}
         <p className="text-center text-xs sm:text-sm text-gray-500">
-          © 2024 MiniInvoice. All rights reserved.
+          © 2024 BillKazi. All rights reserved.
         </p>
       </div>
     </div>

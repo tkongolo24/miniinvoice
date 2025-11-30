@@ -1,7 +1,7 @@
 {
-  "name": "miniinvoice-backend",
+  "name": "BillKazi-backend",
   "version": "1.0.0",
-  "description": "MiniInvoice Backend API",
+  "description": "BillKazi Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

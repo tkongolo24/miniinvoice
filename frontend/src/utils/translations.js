@@ -3,7 +3,7 @@
 export const translations = {
   en: {
     // Header
-    appName: 'MiniInvoice',
+    appName: 'BillKazi',
     profile: 'Profile',
     logout: 'Logout',
     
@@ -86,7 +86,7 @@ export const translations = {
     creating: 'Creating...',
 
     // Login Page
-    loginTitle: 'Login to MiniInvoice',
+    loginTitle: 'Login to BillKazi',
     loginSubtitle: 'Enter your credentials to access your account',
     email: 'Email',
     emailPlaceholder: 'you@example.com',

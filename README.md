@@ -1,4 +1,4 @@
-# MiniInvoice - Professional Invoice Management System
+# BillKazi - Professional Invoice Management System
 
 <div align="center">
 
@@ -41,7 +41,7 @@
 
 ## 🎯 Overview
 
-MiniInvoice is a full-stack web application designed to streamline invoice management for freelancers and small businesses, particularly targeting African markets. Built with modern technologies and mobile-first principles, it provides an intuitive interface for creating, managing, and tracking professional invoices with multiple PDF template options.
+BillKazi is a full-stack web application designed to streamline invoice management for freelancers and small businesses, particularly targeting African markets. Built with modern technologies and mobile-first principles, it provides an intuitive interface for creating, managing, and tracking professional invoices with multiple PDF template options.
 
 ### Key Highlights
 
@@ -157,8 +157,8 @@ Before you begin, ensure you have the following installed:
 #### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/miniinvoice.git
-cd miniinvoice
+git clone https://github.com/yourusername/BillKazi.git
+cd BillKazi
 ```
 
 #### 2. Install Backend Dependencies
@@ -213,7 +213,7 @@ PORT=5000
 NODE_ENV=development
 
 # Database Configuration
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/miniinvoice?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/BillKazi?retryWrites=true&w=majority
 
 # Authentication
 JWT_SECRET=your_super_secret_random_string_minimum_32_characters_long
@@ -282,7 +282,7 @@ Open your browser and navigate to: `http://localhost:5173`
 ## 📁 Project Structure
 
 ```
-miniinvoice/
+BillKazi/
 │
 ├── frontend/                       # React frontend application
 │   ├── public/                     # Static assets
@@ -895,7 +895,7 @@ Authorization: Bearer <token>
 
 ### Design Philosophy
 
-MiniInvoice follows a **mobile-first** approach, ensuring optimal user experience across all devices. The responsive design adapts content, layout, and interactions based on screen size.
+BillKazi follows a **mobile-first** approach, ensuring optimal user experience across all devices. The responsive design adapts content, layout, and interactions based on screen size.
 
 ### Breakpoint System
 
@@ -1035,7 +1035,7 @@ All interactive elements follow accessibility guidelines:
 
 ### Template System Overview
 
-MiniInvoice includes three professionally designed PDF templates, each optimized for different business contexts. Templates are generated client-side using jsPDF and jsPDF-AutoTable.
+BillKazi includes three professionally designed PDF templates, each optimized for different business contexts. Templates are generated client-side using jsPDF and jsPDF-AutoTable.
 
 ### Available Templates
 
@@ -1377,7 +1377,7 @@ git push origin main
 4. Configure service:
 
 ```
-Name: miniinvoice-api
+Name: BillKazi-api
 Environment: Node
 Region: Frankfurt (or closest to target users)
 Branch: main
@@ -1392,7 +1392,7 @@ Instance Type: Free
 Add in Render dashboard:
 ```env
 PORT=5000
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/miniinvoice
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/BillKazi
 JWT_SECRET=your_super_secret_64_character_random_string_here
 NODE_ENV=production
 ```
@@ -1401,7 +1401,7 @@ NODE_ENV=production
 
 - Click "Create Web Service"
 - Wait for build (5-10 minutes)
-- Copy backend URL: `https://miniinvoice-api.onrender.com`
+- Copy backend URL: `https://BillKazi-api.onrender.com`
 
 #### Step 5: Verify Deployment
 
@@ -1448,14 +1448,14 @@ VITE_API_URL=https://your-backend-url.onrender.com
 
 - Click "Deploy"
 - Wait for build (2-5 minutes)
-- Copy frontend URL: `https://miniinvoice.vercel.app`
+- Copy frontend URL: `https://BillKazi.vercel.app`
 
 #### Step 5: Update Backend CORS
 
 In `backend/server.js`, update CORS origin:
 ```javascript
 app.use(cors({
-  origin: 'https://miniinvoice.vercel.app',
+  origin: 'https://BillKazi.vercel.app',
   credentials: true
 }));
 ```
@@ -1557,7 +1557,7 @@ If deployment issues occur:
 ### Custom Domain (Optional)
 
 #### Frontend (Vercel)
-1. Purchase domain (e.g., miniinvoice.app)
+1. Purchase domain (e.g., BillKazi.app)
 2. In Vercel: Settings → Domains
 3. Add custom domain
 4. Update DNS records as instructed
@@ -1565,7 +1565,7 @@ If deployment issues occur:
 
 #### Backend (Render)
 1. In Render: Settings → Custom Domain
-2. Add custom domain (e.g., api.miniinvoice.app)
+2. Add custom domain (e.g., api.BillKazi.app)
 3. Update DNS records
 4. Update frontend VITE_API_URL
 
@@ -1716,7 +1716,7 @@ jwt.sign(payload, secret, { expiresIn: '30d' });
 **Solutions:**
 ```javascript
 // 1. Verify connection string format
-mongodb+srv://username:password@cluster.mongodb.net/miniinvoice
+mongodb+srv://username:password@cluster.mongodb.net/BillKazi
 
 // 2. Check MongoDB Atlas IP whitelist
 // Add 0.0.0.0/0 for development
@@ -1917,8 +1917,8 @@ console.log('Props:', props);
 
 1. **Fork the repository**
 ```bash
-git clone https://github.com/yourusername/miniinvoice.git
-cd miniinvoice
+git clone https://github.com/yourusername/BillKazi.git
+cd BillKazi
 ```
 
 2. **Create feature branch**
@@ -2044,7 +2044,7 @@ className="text-sm sm:text-base lg:text-lg"
 
 MIT License
 
-Copyright (c) 2024 MiniInvoice
+Copyright (c) 2024 BillKazi
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -2074,14 +2074,14 @@ SOFTWARE.
 - **Troubleshooting**: [Troubleshooting](#troubleshooting)
 
 ### Contact
-- **Email**: support@miniinvoice.com
-- **GitHub Issues**: [Report a bug](https://github.com/yourusername/miniinvoice/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/miniinvoice/discussions)
+- **Email**: support@BillKazi.com
+- **GitHub Issues**: [Report a bug](https://github.com/yourusername/BillKazi/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/BillKazi/discussions)
 
 ### Community
-- **Discord**: [Join our Discord](https://discord.gg/miniinvoice)
-- **Twitter**: [@miniinvoice](https://twitter.com/miniinvoice)
-- **Blog**: [blog.miniinvoice.com](https://blog.miniinvoice.com)
+- **Discord**: [Join our Discord](https://discord.gg/BillKazi)
+- **Twitter**: [@BillKazi](https://twitter.com/BillKazi)
+- **Blog**: [blog.BillKazi.com](https://blog.BillKazi.com)
 
 ---
 
@@ -2102,7 +2102,7 @@ Built to solve real problems faced by freelancers in African markets, particular
 - South Africa
 
 ### Contributors
-Thank you to all contributors who help make MiniInvoice better!
+Thank you to all contributors who help make BillKazi better!
 
 ---
 
@@ -2151,7 +2151,7 @@ Thank you to all contributors who help make MiniInvoice better!
 
 ## 🌟 Star History
 
-If you find MiniInvoice useful, please consider giving it a star on GitHub!
+If you find BillKazi useful, please consider giving it a star on GitHub!
 
 ```
 ⭐ Star this repository to show your support!

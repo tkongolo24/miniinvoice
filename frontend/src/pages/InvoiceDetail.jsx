@@ -84,7 +84,7 @@ const InvoiceDetail = () => {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.setFont('helvetica', 'italic');
-    doc.text('Powered by MiniInvoice', 105, pageHeight - 10, { align: 'center' });
+    doc.text('Powered by BillKazi', 105, pageHeight - 10, { align: 'center' });
   };
 
   const generatePDF = () => {
