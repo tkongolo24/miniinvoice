@@ -1,7 +1,8 @@
 {
-  "name": "BillKazi",
+  "name": "billkazi",
   "version": "1.0.0",
   "scripts": {
+    "build": "cd frontend && npm install && npm run build",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "start": "concurrently \"npm start --prefix backend\" \"npm start --prefix frontend\""
   },
