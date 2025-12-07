@@ -2,7 +2,7 @@
   "name": "billkazi",
   "version": "1.0.0",
   "scripts": {
-    "build": "cd frontend && npm install && chmod +x node_modules/.bin/vite && npm run build",
+    "build": "cd frontend && npm install && npx vite build",
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "start": "concurrently \"npm start --prefix backend\" \"npm start --prefix frontend\""
   },
