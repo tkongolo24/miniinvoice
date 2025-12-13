@@ -30,7 +30,8 @@ const corsOptions = {
     ? process.env.FRONTEND_URL 
     : [
         'http://localhost:5173',
-        'https://gp5mjphq-5173.uks1.devtunnels.ms'
+        'https://gp5mjphq-5173.uks1.devtunnels.ms',
+        'https://billkazi.vercel.app'
       ],
   credentials: true
 };
