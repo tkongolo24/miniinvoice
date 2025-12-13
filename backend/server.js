@@ -25,14 +25,24 @@ app.use(helmet());
 app.use(mongoSanitize()); // Prevent MongoDB injection
 
 // CORS Configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://gp5mjphq-5173.uks1.devtunnels.ms',
+  'https://billkazi.vercel.app'
+];
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : [
-        'http://localhost:5173',
-        'https://gp5mjphq-5173.uks1.devtunnels.ms',
-        'https://billkazi.vercel.app'
-      ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list or matches Vercel preview pattern
+    if (allowedOrigins.includes(origin) || /https:\/\/billkazi.*\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 };
 app.use(cors(corsOptions));
