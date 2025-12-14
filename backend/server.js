@@ -28,7 +28,9 @@ app.use(mongoSanitize()); // Prevent MongoDB injection
 const allowedOrigins = [
   'http://localhost:5173',
   'https://gp5mjphq-5173.uks1.devtunnels.ms',
-  'https://billkazi.vercel.app'
+  'https://billkazi.vercel.app',
+  'https://billkazi.me',
+  'https://www.billkazi.me'
 ];
 
 const corsOptions = {
