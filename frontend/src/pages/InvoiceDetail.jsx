@@ -149,34 +149,41 @@ const InvoiceDetail = () => {
     const total = invoice.total;
 
     // Totals Section
-    const finalY = doc.lastAutoTable.finalY + 15;
+    const finalY = doc.lastAutoTable.finalY + 20;
     const rightAlign = 190;
+    const leftAlign = 120;
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
     
     // Subtotal
-    doc.text('Subtotal:', 140, finalY);
+    doc.text('Subtotal:', leftAlign, finalY);
     doc.text(`${currency} ${subtotal.toFixed(2)}`, rightAlign, finalY, { align: 'right' });
     
     // Discount (if applicable)
     if (discount > 0) {
       doc.setTextColor(220, 38, 38);
-      doc.text('Discount:', 140, finalY + 7);
-      doc.text(`-${currency} ${discount.toFixed(2)}`, rightAlign, finalY + 7, { align: 'right' });
+      doc.text('Discount:', leftAlign, finalY + 10);
+      doc.text(`-${currency} ${discount.toFixed(2)}`, rightAlign, finalY + 10, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
     
     // Tax
-    const taxLine = discount > 0 ? finalY + 14 : finalY + 7;
-    doc.text(`Tax (${invoice.taxRate || 18}% VAT):`, 140, taxLine);
+    const taxLine = discount > 0 ? finalY + 20 : finalY + 10;
+    doc.text(`Tax (${invoice.taxRate || 18}% VAT):`, leftAlign, taxLine);
     doc.text(`${currency} ${tax.toFixed(2)}`, rightAlign, taxLine, { align: 'right' });
     
+    // Separator line
+    const separatorLine = discount > 0 ? finalY + 25 : finalY + 15;
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.5);
+    doc.line(leftAlign, separatorLine, rightAlign, separatorLine);
+    
     // Total
-    const totalLine = discount > 0 ? finalY + 21 : finalY + 14;
+    const totalLine = discount > 0 ? finalY + 32 : finalY + 22;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(13);
-    doc.text('Total:', 140, totalLine);
+    doc.setFontSize(14);
+    doc.text('Total:', leftAlign, totalLine);
     doc.text(`${currency} ${total.toFixed(2)}`, rightAlign, totalLine, { align: 'right' });
 
     // Notes
@@ -414,11 +421,6 @@ const InvoiceDetail = () => {
               </p>
             </div>
           )}
-
-          {/* Powered by BillKazi */}
-          <div className="mt-8 pt-6 border-t text-center">
-            <p className="text-base font-semibold text-gray-500">Powered by BillKazi</p>
-          </div>
         </div>
 
         {/* Action Buttons */}
