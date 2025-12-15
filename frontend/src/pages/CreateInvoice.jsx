@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -7,6 +7,12 @@ const CURRENCIES = [
   { code: 'KES', symbol: 'KSH', name: 'Kenyan Shilling' },
   { code: 'NGN', symbol: 'NGN', name: 'Nigerian Naira' },
 ];
+
+const DEFAULT_TAX_RATES = {
+  RWF: 18,
+  KES: 16,
+  NGN: 7.5,
+};
 
 function CreateInvoice() {
   const navigate = useNavigate();
@@ -23,7 +29,18 @@ function CreateInvoice() {
     notes: '',
     currency: 'RWF',
     template: 'classic',
+    taxRate: 18,
+    hasDiscount: false,
+    discount: 0,
+    discountType: 'percentage',
   });
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      taxRate: DEFAULT_TAX_RATES[prev.currency],
+    }));
+  }, [formData.currency]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,8 +79,28 @@ function CreateInvoice() {
     );
   };
 
+  const calculateDiscount = () => {
+    if (!formData.hasDiscount) return 0;
+    
+    const subtotal = calculateSubtotal();
+    if (formData.discountType === 'percentage') {
+      return (subtotal * (parseFloat(formData.discount) || 0)) / 100;
+    }
+    return parseFloat(formData.discount) || 0;
+  };
+
+  const calculateTax = () => {
+    const subtotal = calculateSubtotal();
+    const discount = calculateDiscount();
+    const taxableAmount = subtotal - discount;
+    return (taxableAmount * (parseFloat(formData.taxRate) || 0)) / 100;
+  };
+
   const calculateTotal = () => {
-    return calculateSubtotal();
+    const subtotal = calculateSubtotal();
+    const discount = calculateDiscount();
+    const tax = calculateTax();
+    return subtotal - discount + tax;
   };
 
   const validateForm = () => {
@@ -110,6 +147,8 @@ function CreateInvoice() {
       const invoiceData = {
         ...formData,
         subtotal: calculateSubtotal(),
+        discount: calculateDiscount(),
+        tax: calculateTax(),
         total: calculateTotal(),
       };
 
@@ -367,6 +406,68 @@ function CreateInvoice() {
               </button>
             </div>
 
+            {/* Discount Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <label className="text-sm font-medium text-gray-700">Apply Discount</label>
+                <input
+                  type="checkbox"
+                  checked={formData.hasDiscount}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, hasDiscount: e.target.checked }))
+                  }
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+              </div>
+
+              {formData.hasDiscount && (
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Discount amount"
+                    value={formData.discount}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, discount: e.target.value }))
+                    }
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <select
+                    value={formData.discountType}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, discountType: e.target.value }))
+                    }
+                    className="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="percentage">%</option>
+                    <option value="fixed">Fixed</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Tax Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tax Rate (%)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={formData.taxRate}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, taxRate: e.target.value }))
+                }
+                className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Default: {DEFAULT_TAX_RATES[formData.currency]}% VAT for {formData.currency}
+              </p>
+            </div>
+
             {/* Notes */}
             <div className="border-t border-gray-200 pt-6">
               <div>
@@ -386,8 +487,46 @@ function CreateInvoice() {
 
             {/* Summary */}
             <div className="border-t border-gray-200 pt-6">
-              <div className="bg-blue-50 p-6 rounded-lg">
-                <div className="flex justify-between text-xl font-bold text-gray-900">
+              <div className="bg-blue-50 p-6 rounded-lg space-y-3">
+                <div className="flex justify-between text-gray-700">
+                  <span>Subtotal:</span>
+                  <span>
+                    {getCurrencySymbol()}{' '}
+                    {calculateSubtotal().toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+
+                {formData.hasDiscount && (
+                  <div className="flex justify-between text-red-600">
+                    <span>
+                      Discount ({formData.discount}
+                      {formData.discountType === 'percentage' ? '%' : ` ${getCurrencySymbol()}`}):
+                    </span>
+                    <span>
+                      -{getCurrencySymbol()}{' '}
+                      {calculateDiscount().toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-gray-700">
+                  <span>Tax ({formData.taxRate}%):</span>
+                  <span>
+                    {getCurrencySymbol()}{' '}
+                    {calculateTax().toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-xl font-bold text-gray-900 border-t border-blue-200 pt-3">
                   <span>Total:</span>
                   <span>
                     {getCurrencySymbol()}{' '}
