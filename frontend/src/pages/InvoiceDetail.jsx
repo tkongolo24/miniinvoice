@@ -81,9 +81,9 @@ const InvoiceDetail = () => {
 
   const addWatermark = (doc) => {
     const pageHeight = doc.internal.pageSize.height;
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(14);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'bold');
     doc.text('Powered by BillKazi', 105, pageHeight - 10, { align: 'center' });
   };
 
@@ -96,29 +96,33 @@ const InvoiceDetail = () => {
     const doc = new jsPDF();
     const currency = getCurrencySymbol(invoice.currency);
 
-    // Header
-    doc.setFontSize(24);
+    // Header with color
+    doc.setFillColor(37, 99, 235);
+    doc.rect(0, 0, 210, 35, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
     doc.setFont('helvetica', 'bold');
-    doc.text('INVOICE', 20, 20);
+    doc.text('INVOICE', 20, 22);
 
     // Invoice Details
+    doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 35);
-    doc.text(`Date: ${new Date(invoice.dateIssued).toLocaleDateString()}`, 20, 42);
-    doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 20, 49);
+    doc.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 45);
+    doc.text(`Date: ${new Date(invoice.dateIssued).toLocaleDateString()}`, 20, 52);
+    doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 20, 59);
 
     // Client Info
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Bill To:', 20, 65);
+    doc.text('Bill To:', 20, 75);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(invoice.clientName, 20, 72);
-    doc.text(invoice.clientEmail, 20, 79);
+    doc.text(invoice.clientName, 20, 82);
+    doc.text(invoice.clientEmail, 20, 89);
     if (invoice.clientAddress) {
       const addressLines = doc.splitTextToSize(invoice.clientAddress, 80);
-      doc.text(addressLines, 20, 86);
+      doc.text(addressLines, 20, 96);
     }
 
     // Items Table
@@ -130,26 +134,61 @@ const InvoiceDetail = () => {
     ]);
 
     doc.autoTable({
-      startY: 105,
+      startY: 115,
       head: [['Description', 'Qty', 'Price', 'Total']],
       body: tableData,
       theme: 'striped',
-      headStyles: { fillColor: [66, 139, 202] },
+      headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255] },
+      styles: { fontSize: 10 },
     });
 
-    // Totals
-    const finalY = doc.lastAutoTable.finalY + 10;
+    // Calculate values
+    const subtotal = invoice.subtotal || invoice.total;
+    const discount = invoice.discount || 0;
+    const tax = invoice.tax || 0;
+    const total = invoice.total;
+
+    // Totals Section
+    const finalY = doc.lastAutoTable.finalY + 15;
+    const rightAlign = 190;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    
+    // Subtotal
+    doc.text('Subtotal:', 140, finalY);
+    doc.text(`${currency} ${subtotal.toFixed(2)}`, rightAlign, finalY, { align: 'right' });
+    
+    // Discount (if applicable)
+    if (discount > 0) {
+      doc.setTextColor(220, 38, 38);
+      doc.text('Discount:', 140, finalY + 7);
+      doc.text(`-${currency} ${discount.toFixed(2)}`, rightAlign, finalY + 7, { align: 'right' });
+      doc.setTextColor(0, 0, 0);
+    }
+    
+    // Tax
+    const taxLine = discount > 0 ? finalY + 14 : finalY + 7;
+    doc.text(`Tax (${invoice.taxRate || 18}% VAT):`, 140, taxLine);
+    doc.text(`${currency} ${tax.toFixed(2)}`, rightAlign, taxLine, { align: 'right' });
+    
+    // Total
+    const totalLine = discount > 0 ? finalY + 21 : finalY + 14;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text(`Total: ${currency} ${invoice.total.toFixed(2)}`, 140, finalY);
+    doc.setFontSize(13);
+    doc.text('Total:', 140, totalLine);
+    doc.text(`${currency} ${total.toFixed(2)}`, rightAlign, totalLine, { align: 'right' });
 
     // Notes
     if (invoice.notes) {
+      const notesStartY = totalLine + 15;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('Notes:', 20, notesStartY);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text('Notes:', 20, finalY + 30);
       const notesLines = doc.splitTextToSize(invoice.notes, 170);
-      doc.text(notesLines, 20, finalY + 37);
+      doc.text(notesLines, 20, notesStartY + 7);
     }
 
     // Add watermark
@@ -184,6 +223,10 @@ const InvoiceDetail = () => {
       </div>
     );
   }
+
+  const subtotal = invoice.subtotal || invoice.total;
+  const discount = invoice.discount || 0;
+  const tax = invoice.tax || 0;
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
@@ -223,7 +266,7 @@ const InvoiceDetail = () => {
         </div>
 
         {/* Invoice Content */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8 mb-6">
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8 mb-6 border-t-4 border-blue-600">
           {/* Template Info */}
           <div className="mb-6 pb-4 border-b">
             <p className="text-sm text-gray-600">
@@ -270,25 +313,25 @@ const InvoiceDetail = () => {
             {/* Desktop View */}
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-blue-600 text-white">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase">
                       Description
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-center text-xs font-medium uppercase">
                       Qty
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase">
                       Price
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase">
                       Total
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {invoice.items.map((item, index) => (
-                    <tr key={index}>
+                    <tr key={index} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
                       <td className="px-4 py-3 text-sm text-center text-gray-700">{item.quantity}</td>
                       <td className="px-4 py-3 text-sm text-right text-gray-700">
@@ -328,11 +371,34 @@ const InvoiceDetail = () => {
           </div>
 
           {/* Totals */}
-          <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
-            <div className="space-y-2 text-sm sm:text-base max-w-sm ml-auto">
-              <div className="flex justify-between">
-                <span className="text-lg font-semibold text-gray-900">Total:</span>
-                <span className="text-lg font-bold text-blue-600">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6 border border-blue-100">
+            <div className="space-y-3 text-sm sm:text-base max-w-sm ml-auto">
+              <div className="flex justify-between text-gray-700">
+                <span>Subtotal:</span>
+                <span className="font-medium">
+                  {getCurrencySymbol(invoice.currency)} {subtotal.toFixed(2)}
+                </span>
+              </div>
+
+              {discount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Discount:</span>
+                  <span className="font-medium">
+                    -{getCurrencySymbol(invoice.currency)} {discount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-gray-700">
+                <span>Tax ({invoice.taxRate || 18}% VAT):</span>
+                <span className="font-medium">
+                  {getCurrencySymbol(invoice.currency)} {tax.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-lg font-bold text-blue-600 border-t-2 border-blue-200 pt-3">
+                <span>Total:</span>
+                <span>
                   {getCurrencySymbol(invoice.currency)} {invoice.total?.toFixed(2)}
                 </span>
               </div>
@@ -348,13 +414,18 @@ const InvoiceDetail = () => {
               </p>
             </div>
           )}
+
+          {/* Powered by BillKazi */}
+          <div className="mt-8 pt-6 border-t text-center">
+            <p className="text-base font-semibold text-gray-500">Powered by BillKazi</p>
+          </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-3">
           <button
             onClick={generatePDF}
-            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base"
+            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
           >
             📄 Download PDF
           </button>
