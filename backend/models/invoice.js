@@ -52,12 +52,26 @@ const invoiceSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  taxRate: {
+  hasDiscount: {
+    type: Boolean,
+    default: false
+  },
+  discount: {
     type: Number,
     default: 0,
     min: 0
   },
-  taxAmount: {
+  discountType: {
+    type: String,
+    enum: ['percentage', 'fixed'],
+    default: 'percentage'
+  },
+  taxRate: {
+    type: Number,
+    default: 18,
+    min: 0
+  },
+  tax: {
     type: Number,
     default: 0,
     min: 0
@@ -66,6 +80,11 @@ const invoiceSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0
+  },
+  currency: {
+    type: String,
+    enum: ['RWF', 'KES', 'NGN'],
+    default: 'RWF'
   },
   status: {
     type: String,
