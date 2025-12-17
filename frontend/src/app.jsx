@@ -10,7 +10,9 @@ import Settings from './pages/Settings';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './contexts/LanguageContext';
 import CompanyProfile from './pages/companyprofile';
+import { inject } from '@vercel/analytics';
 
+inject();
 // Protected Route component
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token');

@@ -1,17 +1,37 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import ProfileCompleteModal from '../components/ProfileCompleteModal';
 
 const Dashboard = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchInvoices();
+    checkProfileComplete();
   }, []);
+
+  const checkProfileComplete = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/settings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!response.data.profileCompleted) {
+        setShowProfileModal(true);
+      }
+    } catch (err) {
+      console.error('Failed to check profile status');
+    }
+  };
 
   const fetchInvoices = async () => {
     try {
@@ -86,6 +106,11 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ProfileCompleteModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
