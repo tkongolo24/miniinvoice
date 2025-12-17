@@ -52,6 +52,9 @@ app.use(cors(corsOptions));
 // Body Parser
 app.use(express.json());
 
+// Serve uploaded files (logos)
+app.use('/uploads', express.static('uploads'));
+
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -71,11 +74,13 @@ const authLimiter = rateLimit({
 // Routes
 const authRoutes = require('./routes/auth');
 const invoiceRoutes = require('./routes/invoices');
+const settingsRoutes = require('./routes/settings');
 
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

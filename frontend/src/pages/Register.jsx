@@ -6,6 +6,7 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     companyName: '',
@@ -35,6 +36,7 @@ const Register = () => {
         {
           name: formData.name,
           email: formData.email,
+          phone: formData.phone,
           password: formData.password,
           companyName: formData.companyName,
         }
@@ -106,8 +108,24 @@ const Register = () => {
             </div>
 
             <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                required
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
+                placeholder="+250 792 577 782"
+              />
+            </div>
+
+            <div>
               <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
-                Company Name (Optional)
+                Company Name <span className="text-gray-400">(Optional)</span>
               </label>
               <input
                 id="companyName"

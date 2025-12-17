@@ -9,6 +9,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './contexts/LanguageContext';
+import CompanyProfile from './pages/companyprofile';
 
 // Protected Route component
 function ProtectedRoute({ children }) {
@@ -69,6 +70,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/company-profile"
+              element={
+                <ProtectedRoute>
+                  <CompanyProfile />
                 </ProtectedRoute>
               }
             />
