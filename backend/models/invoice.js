@@ -66,6 +66,11 @@ const invoiceSchema = new mongoose.Schema({
     enum: ['percentage', 'fixed'],
     default: 'percentage'
   },
+  netAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   taxRate: {
     type: Number,
     default: 18,

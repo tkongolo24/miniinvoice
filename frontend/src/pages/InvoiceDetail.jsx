@@ -143,47 +143,66 @@ const InvoiceDetail = () => {
     });
 
     // Calculate values
-    const subtotal = invoice.subtotal || invoice.total;
+    const grossPrice = invoice.subtotal || invoice.total;
     const discount = invoice.discount || 0;
+    const discountedGross = grossPrice - discount;
+    const netAmount = invoice.netAmount || 0;
     const tax = invoice.tax || 0;
     const total = invoice.total;
 
     // Totals Section
     const finalY = doc.lastAutoTable.finalY + 20;
     const rightAlign = 190;
-    const leftAlign = 120;
+    const leftAlign = 110;
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
     
-    // Subtotal
-    doc.text('Subtotal:', leftAlign, finalY);
-    doc.text(`${currency} ${subtotal.toFixed(2)}`, rightAlign, finalY, { align: 'right' });
+    // Items Total (incl. VAT)
+    doc.text('Items Total (incl. VAT):', leftAlign, finalY);
+    doc.text(`${currency} ${grossPrice.toFixed(2)}`, rightAlign, finalY, { align: 'right' });
     
     // Discount (if applicable)
     if (discount > 0) {
       doc.setTextColor(220, 38, 38);
-      doc.text('Discount:', leftAlign, finalY + 10);
+      const discountLabel = invoice.discountType === 'percentage' 
+        ? `Discount (${invoice.discount}%):`
+        : 'Discount:';
+      doc.text(discountLabel, leftAlign, finalY + 10);
       doc.text(`-${currency} ${discount.toFixed(2)}`, rightAlign, finalY + 10, { align: 'right' });
       doc.setTextColor(0, 0, 0);
     }
     
-    // Tax
-    const taxLine = discount > 0 ? finalY + 20 : finalY + 10;
-    doc.text(`Tax (${invoice.taxRate || 18}% VAT):`, leftAlign, taxLine);
-    doc.text(`${currency} ${tax.toFixed(2)}`, rightAlign, taxLine, { align: 'right' });
+    // Subtotal after discount
+    const subtotalLine = discount > 0 ? finalY + 20 : finalY + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Subtotal after discount:', leftAlign, subtotalLine);
+    doc.text(`${currency} ${discountedGross.toFixed(2)}`, rightAlign, subtotalLine, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    
+    // Net Amount
+    const netLine = subtotalLine + 10;
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.text('Net Amount (excl. VAT):', leftAlign, netLine);
+    doc.text(`${currency} ${netAmount.toFixed(2)}`, rightAlign, netLine, { align: 'right' });
+    
+    // VAT
+    doc.text(`VAT (${invoice.taxRate || 18}%):`, leftAlign, netLine + 7);
+    doc.text(`${currency} ${tax.toFixed(2)}`, rightAlign, netLine + 7, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
     
     // Separator line
-    const separatorLine = discount > 0 ? finalY + 25 : finalY + 15;
+    const separatorLine = netLine + 12;
     doc.setDrawColor(37, 99, 235);
     doc.setLineWidth(0.5);
     doc.line(leftAlign, separatorLine, rightAlign, separatorLine);
     
-    // Total
-    const totalLine = discount > 0 ? finalY + 32 : finalY + 22;
+    // Total Payable
+    const totalLine = separatorLine + 7;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('Total:', leftAlign, totalLine);
+    doc.text('Total Payable:', leftAlign, totalLine);
     doc.text(`${currency} ${total.toFixed(2)}`, rightAlign, totalLine, { align: 'right' });
 
     // Notes
@@ -233,6 +252,8 @@ const InvoiceDetail = () => {
 
   const subtotal = invoice.subtotal || invoice.total;
   const discount = invoice.discount || 0;
+  const discountedGross = subtotal - discount;
+  const netAmount = invoice.netAmount || 0;
   const tax = invoice.tax || 0;
 
   return (
@@ -381,30 +402,48 @@ const InvoiceDetail = () => {
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6 border border-blue-100">
             <div className="space-y-3 text-sm sm:text-base max-w-sm ml-auto">
               <div className="flex justify-between text-gray-700">
-                <span>Subtotal:</span>
+                <span>Items Total (incl. VAT):</span>
                 <span className="font-medium">
                   {getCurrencySymbol(invoice.currency)} {subtotal.toFixed(2)}
                 </span>
               </div>
 
               {discount > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Discount:</span>
-                  <span className="font-medium">
-                    -{getCurrencySymbol(invoice.currency)} {discount.toFixed(2)}
-                  </span>
-                </div>
+                <>
+                  <div className="flex justify-between text-red-600">
+                    <span>
+                      Discount
+                      {invoice.discountType === 'percentage' ? ` (${invoice.discount}%)` : ''}:
+                    </span>
+                    <span className="font-medium">
+                      -{getCurrencySymbol(invoice.currency)} {discount.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-900 font-medium border-t border-blue-200 pt-2">
+                    <span>Subtotal after discount:</span>
+                    <span>
+                      {getCurrencySymbol(invoice.currency)} {discountedGross.toFixed(2)}
+                    </span>
+                  </div>
+                </>
               )}
 
-              <div className="flex justify-between text-gray-700">
-                <span>Tax ({invoice.taxRate || 18}% VAT):</span>
+              <div className="flex justify-between text-gray-600 text-sm pt-2">
+                <span>Net Amount (excl. VAT):</span>
+                <span className="font-medium">
+                  {getCurrencySymbol(invoice.currency)} {netAmount.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-gray-600 text-sm">
+                <span>VAT ({invoice.taxRate || 18}%):</span>
                 <span className="font-medium">
                   {getCurrencySymbol(invoice.currency)} {tax.toFixed(2)}
                 </span>
               </div>
 
               <div className="flex justify-between text-lg font-bold text-blue-600 border-t-2 border-blue-200 pt-3">
-                <span>Total:</span>
+                <span>Total Payable:</span>
                 <span>
                   {getCurrencySymbol(invoice.currency)} {invoice.total?.toFixed(2)}
                 </span>

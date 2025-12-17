@@ -90,17 +90,27 @@ function CreateInvoice() {
   };
 
   const calculateTax = () => {
-    const subtotal = calculateSubtotal();
+    const grossPrice = calculateSubtotal();
     const discount = calculateDiscount();
-    const taxableAmount = subtotal - discount;
-    return (taxableAmount * (parseFloat(formData.taxRate) || 0)) / 100;
+    const discountedGross = grossPrice - discount;
+    const taxRate = parseFloat(formData.taxRate) || 0;
+    // Extract VAT from VAT-inclusive price
+    return discountedGross * (taxRate / (100 + taxRate));
+  };
+
+  const calculateNetAmount = () => {
+    const grossPrice = calculateSubtotal();
+    const discount = calculateDiscount();
+    const discountedGross = grossPrice - discount;
+    const tax = calculateTax();
+    return discountedGross - tax;
   };
 
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
     const discount = calculateDiscount();
-    const tax = calculateTax();
-    return subtotal - discount + tax;
+    // Total is VAT-inclusive (subtotal minus discount)
+    return subtotal - discount;
   };
 
   const validateForm = () => {
@@ -148,6 +158,7 @@ function CreateInvoice() {
         ...formData,
         subtotal: calculateSubtotal(),
         discount: calculateDiscount(),
+        netAmount: calculateNetAmount(),
         tax: calculateTax(),
         total: calculateTotal(),
       };
@@ -489,7 +500,7 @@ function CreateInvoice() {
             <div className="border-t border-gray-200 pt-6">
               <div className="bg-blue-50 p-6 rounded-lg space-y-3">
                 <div className="flex justify-between text-gray-700">
-                  <span>Subtotal:</span>
+                  <span>Items Total (incl. VAT):</span>
                   <span>
                     {getCurrencySymbol()}{' '}
                     {calculateSubtotal().toLocaleString('en-US', {
@@ -500,23 +511,46 @@ function CreateInvoice() {
                 </div>
 
                 {formData.hasDiscount && (
-                  <div className="flex justify-between text-red-600">
-                    <span>
-                      Discount ({formData.discount}
-                      {formData.discountType === 'percentage' ? '%' : ` ${getCurrencySymbol()}`}):
-                    </span>
-                    <span>
-                      -{getCurrencySymbol()}{' '}
-                      {calculateDiscount().toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
+                  <>
+                    <div className="flex justify-between text-red-600">
+                      <span>
+                        Discount ({formData.discount}
+                        {formData.discountType === 'percentage' ? '%' : ` ${getCurrencySymbol()}`}):
+                      </span>
+                      <span>
+                        -{getCurrencySymbol()}{' '}
+                        {calculateDiscount().toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-gray-900 font-medium border-t border-blue-200 pt-3">
+                      <span>Subtotal after discount:</span>
+                      <span>
+                        {getCurrencySymbol()}{' '}
+                        {calculateTotal().toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  </>
                 )}
 
-                <div className="flex justify-between text-gray-700">
-                  <span>Tax ({formData.taxRate}%):</span>
+                <div className="flex justify-between text-gray-600 text-sm pt-2">
+                  <span>Net Amount (excl. VAT):</span>
+                  <span>
+                    {getCurrencySymbol()}{' '}
+                    {calculateNetAmount().toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+
+                <div className="flex justify-between text-gray-600 text-sm">
+                  <span>VAT ({formData.taxRate}%):</span>
                   <span>
                     {getCurrencySymbol()}{' '}
                     {calculateTax().toLocaleString('en-US', {
@@ -526,8 +560,8 @@ function CreateInvoice() {
                   </span>
                 </div>
 
-                <div className="flex justify-between text-xl font-bold text-gray-900 border-t border-blue-200 pt-3">
-                  <span>Total:</span>
+                <div className="flex justify-between text-xl font-bold text-gray-900 border-t-2 border-blue-300 pt-3">
+                  <span>Total Payable:</span>
                   <span>
                     {getCurrencySymbol()}{' '}
                     {calculateTotal().toLocaleString('en-US', {
