@@ -11,8 +11,6 @@ const CompanyProfile = () => {
     contactEmail: '',
     invoiceFooter: '',
   });
-  const [logoPreview, setLogoPreview] = useState(null);
-  const [logoFile, setLogoFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,10 +38,6 @@ const CompanyProfile = () => {
         contactEmail: data.contactEmail || '',
         invoiceFooter: data.invoiceFooter || '',
       });
-      
-      if (data.logo) {
-        setLogoPreview(`${API_URL}${data.logo}`);
-      }
     } catch (err) {
       console.error('Failed to fetch settings:', err);
     } finally {
@@ -56,32 +50,6 @@ const CompanyProfile = () => {
     setError('');
   };
 
-  const handleLogoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        setError('Logo must be less than 2MB');
-        return;
-      }
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
-      setError('');
-    }
-  };
-
-  const handleRemoveLogo = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_URL}/api/settings/logo`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setLogoPreview(null);
-      setLogoFile(null);
-    } catch (err) {
-      setError('Failed to remove logo');
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -90,19 +58,7 @@ const CompanyProfile = () => {
     try {
       const token = localStorage.getItem('token');
 
-      // Upload logo first if there's a new one
-      if (logoFile) {
-        const formData = new FormData();
-        formData.append('logo', logoFile);
-        await axios.post(`${API_URL}/api/settings/logo`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-      }
-
-      // Update other settings
+      // Update settings
       await axios.put(`${API_URL}/api/settings`, profileData, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -145,49 +101,6 @@ const CompanyProfile = () => {
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
-            {/* Logo Upload Section */}
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8 mb-6">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
-                Company Logo
-              </h2>
-              <div className="flex items-center space-x-6">
-                <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50">
-                  {logoPreview ? (
-                    <img
-                      src={logoPreview}
-                      alt="Logo preview"
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <span className="text-gray-400 text-sm text-center px-2">
-                      No logo
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col space-y-2">
-                  <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium text-center">
-                    Upload Logo
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                      className="hidden"
-                    />
-                  </label>
-                  {logoPreview && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveLogo}
-                      className="text-red-600 hover:text-red-700 text-sm font-medium"
-                    >
-                      Remove Logo
-                    </button>
-                  )}
-                  <p className="text-xs text-gray-500">Max 2MB, PNG or JPG</p>
-                </div>
-              </div>
-            </div>
-
             {/* Company Details Section */}
             <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8 mb-6">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
