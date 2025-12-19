@@ -16,7 +16,6 @@ const CompanyProfile = () => {
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
   const API_URL = import.meta.env.VITE_API_URL;
@@ -54,7 +53,6 @@ const CompanyProfile = () => {
 
   const handleChange = (e) => {
     setProfileData({ ...profileData, [e.target.name]: e.target.value });
-    setSuccess('');
     setError('');
   };
 
@@ -79,7 +77,6 @@ const CompanyProfile = () => {
       });
       setLogoPreview(null);
       setLogoFile(null);
-      setSuccess('Logo removed successfully!');
     } catch (err) {
       setError('Failed to remove logo');
     }
@@ -88,7 +85,6 @@ const CompanyProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
     setLoading(true);
 
     try {
@@ -111,11 +107,10 @@ const CompanyProfile = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      setSuccess('Profile updated successfully!');
-      setLogoFile(null);
+      // Redirect to dashboard after successful save
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update profile');
-    } finally {
       setLoading(false);
     }
   };
@@ -137,12 +132,7 @@ const CompanyProfile = () => {
           </p>
         </div>
 
-        {/* Success/Error Messages */}
-        {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm">
-            {success}
-          </div>
-        )}
+        {/* Error Message */}
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
             {error}

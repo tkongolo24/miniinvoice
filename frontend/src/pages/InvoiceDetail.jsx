@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const InvoiceDetail = () => {
   const { id } = useParams();
@@ -184,7 +184,7 @@ const InvoiceDetail = () => {
       `${currency} ${(item.quantity * item.unitPrice).toFixed(2)}`,
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: 115,
       head: [['Description', 'Qty', 'Price', 'Total']],
       body: tableData,
