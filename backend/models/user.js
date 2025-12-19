@@ -39,6 +39,33 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['classic', 'modern', 'elegant'],
     default: 'classic'
+  },
+  // New fields for company profile
+  businessRegNumber: {
+    type: String,
+    default: ''
+  },
+  contactEmail: {
+    type: String,
+    default: ''
+  },
+  logo: {
+    type: String,
+    default: ''
+  },
+  invoiceFooter: {
+    type: String,
+    default: '',
+    maxlength: 500
+  },
+  profileCompleted: {
+    type: Boolean,
+    default: false
+  },
+  plan: {
+    type: String,
+    enum: ['free', 'pro', 'enterprise'],
+    default: 'free'
   }
 }, {
   timestamps: true
@@ -62,6 +89,11 @@ userSchema.pre('save', async function(next) {
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Check if profile is complete
+userSchema.methods.checkProfileComplete = function() {
+  return !!(this.companyName && this.address && this.phone);
 };
 
 // Remove password from JSON response
