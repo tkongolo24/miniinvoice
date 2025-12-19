@@ -9,7 +9,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './contexts/LanguageContext';
-import CompanyProfile from './pages/companyprofile';
+import CompanyProfile from './pages/CompanyProfile';
 import { inject } from '@vercel/analytics';
 
 inject();
