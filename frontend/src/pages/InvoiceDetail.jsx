@@ -12,8 +12,11 @@ const InvoiceDetail = () => {
   const [error, setError] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [companySettings, setCompanySettings] = useState(null);
+
   useEffect(() => {
     fetchInvoice();
+    fetchCompanySettings();
   }, [id]);
 
   const fetchInvoice = async () => {
@@ -33,6 +36,21 @@ const InvoiceDetail = () => {
       if (err.response?.status === 401) {
         navigate('/login');
       }
+    }
+  };
+
+  const fetchCompanySettings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/settings`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setCompanySettings(response.data);
+    } catch (err) {
+      console.error('Failed to load company settings');
     }
   };
 
@@ -103,6 +121,39 @@ const InvoiceDetail = () => {
     doc.setFontSize(28);
     doc.setFont('helvetica', 'bold');
     doc.text('INVOICE', 20, 22);
+
+    // Company Info (right side of header area)
+    let companyStartY = 45;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    
+    if (companySettings?.companyName) {
+      doc.text(companySettings.companyName, 190, companyStartY, { align: 'right' });
+      companyStartY += 6;
+    }
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
+    if (companySettings?.address) {
+      doc.text(companySettings.address, 190, companyStartY, { align: 'right' });
+      companyStartY += 5;
+    }
+    
+    if (companySettings?.phone) {
+      doc.text(companySettings.phone, 190, companyStartY, { align: 'right' });
+      companyStartY += 5;
+    }
+    
+    if (companySettings?.contactEmail) {
+      doc.text(companySettings.contactEmail, 190, companyStartY, { align: 'right' });
+      companyStartY += 5;
+    }
+    
+    if (companySettings?.businessRegNumber) {
+      doc.text(companySettings.businessRegNumber, 190, companyStartY, { align: 'right' });
+    }
 
     // Invoice Details
     doc.setTextColor(0, 0, 0);
@@ -206,6 +257,7 @@ const InvoiceDetail = () => {
     doc.text(`${currency} ${total.toFixed(2)}`, rightAlign, totalLine, { align: 'right' });
 
     // Notes
+    let notesEndY = totalLine;
     if (invoice.notes) {
       const notesStartY = totalLine + 15;
       doc.setFont('helvetica', 'bold');
@@ -215,6 +267,18 @@ const InvoiceDetail = () => {
       doc.setFontSize(10);
       const notesLines = doc.splitTextToSize(invoice.notes, 170);
       doc.text(notesLines, 20, notesStartY + 7);
+      notesEndY = notesStartY + 7 + (notesLines.length * 5);
+    }
+
+    // Invoice Footer (from company settings)
+    if (companySettings?.invoiceFooter) {
+      const footerStartY = notesEndY + 15;
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+      const footerLines = doc.splitTextToSize(companySettings.invoiceFooter, 170);
+      doc.text(footerLines, 105, footerStartY, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
     }
 
     // Add watermark
@@ -295,6 +359,36 @@ const InvoiceDetail = () => {
 
         {/* Invoice Content */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8 mb-6 border-t-4 border-blue-600">
+          {/* Company Header */}
+          {companySettings && (companySettings.companyName || companySettings.logo) && (
+            <div className="flex justify-between items-start mb-6 pb-4 border-b">
+              <div className="flex items-center gap-4">
+                {companySettings.logo && (
+                  <img
+                    src={`${import.meta.env.VITE_API_URL}${companySettings.logo}`}
+                    alt="Company Logo"
+                    className="w-16 h-16 object-contain"
+                  />
+                )}
+                <div>
+                  {companySettings.companyName && (
+                    <h2 className="text-xl font-bold text-gray-900">{companySettings.companyName}</h2>
+                  )}
+                  {companySettings.address && (
+                    <p className="text-sm text-gray-600">{companySettings.address}</p>
+                  )}
+                </div>
+              </div>
+              <div className="text-right text-sm text-gray-600">
+                {companySettings.phone && <p>{companySettings.phone}</p>}
+                {companySettings.contactEmail && <p>{companySettings.contactEmail}</p>}
+                {companySettings.businessRegNumber && (
+                  <p className="font-medium">{companySettings.businessRegNumber}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Template Info */}
           <div className="mb-6 pb-4 border-b">
             <p className="text-sm text-gray-600">
@@ -457,6 +551,15 @@ const InvoiceDetail = () => {
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Notes</h2>
               <p className="text-sm sm:text-base text-gray-700 whitespace-pre-line">
                 {invoice.notes}
+              </p>
+            </div>
+          )}
+
+          {/* Invoice Footer */}
+          {companySettings?.invoiceFooter && (
+            <div className="mt-6 pt-6 border-t text-center">
+              <p className="text-sm text-gray-600 italic whitespace-pre-line">
+                {companySettings.invoiceFooter}
               </p>
             </div>
           )}
