@@ -1,40 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const User = require('../models/user');
 const auth = require('../middleware/auth');
-
-// Configure multer for logo upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/logos';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'logo-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('Only image files are allowed (jpeg, jpg, png, gif)'));
-  }
-});
 
 // Get user settings
 router.get('/', auth, async (req, res) => {
@@ -45,18 +12,21 @@ router.get('/', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Check profile completion
+    const profileCompleted = !!(user.companyName && user.address && user.phone);
+
     res.json({
       email: user.email,
       name: user.name,
-      companyName: user.companyName,
-      phone: user.phone,
-      address: user.address,
-      businessRegNumber: user.businessRegNumber,
-      contactEmail: user.contactEmail,
-      logo: user.logo,
-      invoiceFooter: user.invoiceFooter,
-      profileCompleted: user.profileCompleted,
-      plan: user.plan
+      companyName: user.companyName || '',
+      phone: user.phone || '',
+      address: user.address || '',
+      businessRegNumber: user.businessRegNumber || '',
+      contactEmail: user.contactEmail || '',
+      logo: user.logo || '',
+      invoiceFooter: user.invoiceFooter || '',
+      profileCompleted: profileCompleted,
+      plan: user.plan || 'free'
     });
   } catch (error) {
     console.error('Get settings error:', error);
@@ -90,8 +60,8 @@ router.put('/', auth, async (req, res) => {
     if (contactEmail !== undefined) user.contactEmail = contactEmail;
     if (invoiceFooter !== undefined) user.invoiceFooter = invoiceFooter.substring(0, 500);
 
-    // Update profile completion status
-    user.profileCompleted = user.checkProfileComplete();
+    // Update profile completion status directly
+    user.profileCompleted = !!(user.companyName && user.address && user.phone);
 
     await user.save();
 
@@ -117,39 +87,11 @@ router.put('/', auth, async (req, res) => {
   }
 });
 
-// Upload logo
-router.post('/logo', auth, upload.single('logo'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
-
-    const user = await User.findById(req.userId);
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Delete old logo if exists
-    if (user.logo) {
-      const oldLogoPath = path.join(__dirname, '..', user.logo);
-      if (fs.existsSync(oldLogoPath)) {
-        fs.unlinkSync(oldLogoPath);
-      }
-    }
-
-    // Save new logo path
-    user.logo = `uploads/logos/${req.file.filename}`;
-    await user.save();
-
-    res.json({
-      message: 'Logo uploaded successfully',
-      logo: user.logo
-    });
-  } catch (error) {
-    console.error('Logo upload error:', error);
-    res.status(500).json({ message: 'Server error during logo upload' });
-  }
+// Logo upload - temporarily disabled
+router.post('/logo', auth, async (req, res) => {
+  res.status(503).json({ 
+    message: 'Logo upload is temporarily disabled. This feature will be available soon.' 
+  });
 });
 
 // Delete logo
@@ -161,18 +103,10 @@ router.delete('/logo', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Delete logo file
-    if (user.logo) {
-      const logoPath = path.join(__dirname, '..', user.logo);
-      if (fs.existsSync(logoPath)) {
-        fs.unlinkSync(logoPath);
-      }
-    }
-
     user.logo = '';
     await user.save();
 
-    res.json({ message: 'Logo deleted successfully' });
+    res.json({ message: 'Logo removed successfully' });
   } catch (error) {
     console.error('Delete logo error:', error);
     res.status(500).json({ message: 'Server error' });

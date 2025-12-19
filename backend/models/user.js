@@ -40,7 +40,6 @@ const userSchema = new mongoose.Schema({
     enum: ['classic', 'modern', 'elegant'],
     default: 'classic'
   },
-  // New fields for company profile
   businessRegNumber: {
     type: String,
     default: ''
@@ -89,11 +88,6 @@ userSchema.pre('save', async function(next) {
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
-};
-
-// Check if profile is complete
-userSchema.methods.checkProfileComplete = function() {
-  return !!(this.companyName && this.address && this.phone);
 };
 
 // Remove password from JSON response
