@@ -25,7 +25,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/users/profile`,
+        `${import.meta.env.VITE_API_URL}/api/settings`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -63,7 +63,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `${import.meta.env.VITE_API_URL}/api/users/profile`,
+        `${import.meta.env.VITE_API_URL}/api/settings`,
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },
