@@ -53,13 +53,12 @@ router.put('/', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Update name: use explicit name if provided, otherwise fallback to non-empty companyName
-    if (name !== undefined) {
+    // Update name: use explicit name if provided and non-empty, otherwise fallback to non-empty companyName
+    if (name !== undefined && name !== null && name.trim() !== '') {
       user.name = name;
     } else if (companyName !== undefined && companyName !== null && companyName.trim() !== '') {
       user.name = companyName;
-    }
-    
+    }    
     // Update fields
     if (companyName !== undefined) user.companyName = companyName;
     if (phone !== undefined) user.phone = phone;
