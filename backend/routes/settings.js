@@ -38,6 +38,7 @@ router.get('/', auth, async (req, res) => {
 router.put('/', auth, async (req, res) => {
   try {
     const {
+      name,
       companyName,
       phone,
       address,
@@ -53,6 +54,7 @@ router.put('/', auth, async (req, res) => {
     }
 
     // Update fields
+    if (name !== undefined) user.name = name;
     if (companyName !== undefined) user.companyName = companyName;
     if (phone !== undefined) user.phone = phone;
     if (address !== undefined) user.address = address;
