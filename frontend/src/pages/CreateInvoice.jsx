@@ -183,7 +183,7 @@ function CreateInvoice() {
       const invoiceData = {
         ...formData,
         subtotal: calculateSubtotal(),
-        discount: calculateDiscount(),
+        discount: formData.hasDiscount ? parseFloat(formData.discount) || 0 : 0,
         netAmount: calculateNetAmount(),
         tax: calculateTax(),
         total: calculateTotal(),
