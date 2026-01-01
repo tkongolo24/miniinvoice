@@ -97,6 +97,16 @@ const InvoiceDetail = () => {
     return symbols[currency] || 'RWF';
   };
 
+  const calculateDiscount = () => {
+    if (!invoice || !invoice.hasDiscount) return 0;
+    
+    const subtotal = invoice.subtotal || 0;
+    if (invoice.discountType === 'percentage') {
+      return (subtotal * (parseFloat(invoice.discount) || 0)) / 100;
+    }
+    return parseFloat(invoice.discount) || 0;
+  };
+
   const addWatermark = (doc) => {
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(14);
@@ -113,6 +123,7 @@ const InvoiceDetail = () => {
   const generateClassicPDF = () => {
     const doc = new jsPDF();
     const currency = getCurrencySymbol(invoice.currency);
+    const calculatedDiscount = calculateDiscount();
 
     // Header with color
     doc.setFillColor(37, 99, 235);
@@ -195,7 +206,7 @@ const InvoiceDetail = () => {
 
     // Calculate values
     const grossPrice = invoice.subtotal || invoice.total;
-    const discount = invoice.discount || 0;
+    const discount = calculatedDiscount;
     const discountedGross = grossPrice - discount;
     const netAmount = invoice.netAmount || 0;
     const tax = invoice.tax || 0;
@@ -315,7 +326,7 @@ const InvoiceDetail = () => {
   }
 
   const subtotal = invoice.subtotal || invoice.total;
-  const discount = invoice.discount || 0;
+  const discount = calculateDiscount();
   const discountedGross = subtotal - discount;
   const netAmount = invoice.netAmount || 0;
   const tax = invoice.tax || 0;
