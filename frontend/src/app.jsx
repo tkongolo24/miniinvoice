@@ -12,6 +12,8 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import CompanyProfile from './pages/CompanyProfile';
 import VerifyEmail from './pages/VerifyEmail';
 import { inject } from '@vercel/analytics';
+import MagicSignin from './pages/MagicSignin';
+import ResetPassword from './pages/ResetPassword';
 
 inject();
 
