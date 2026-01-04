@@ -96,6 +96,10 @@ const invoiceSchema = new mongoose.Schema({
     enum: ['paid', 'unpaid'],
     default: 'unpaid'
   },
+  emailVerified: {
+  type: Boolean,
+  default: false
+  },
   notes: {
     type: String,
     default: ''

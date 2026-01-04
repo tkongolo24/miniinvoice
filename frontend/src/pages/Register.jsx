@@ -12,6 +12,7 @@ const Register = () => {
     companyName: '',
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -31,7 +32,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `${import.meta.env.VITE_API_URL}/api/auth/register`,
         {
           name: formData.name,
@@ -41,14 +42,64 @@ const Register = () => {
           companyName: formData.companyName,
         }
       );
-      localStorage.setItem('token', response.data.token);
-      navigate('/dashboard');
+      setSuccess(true);
+      setError('');
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setSuccess(false);
     } finally {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+              BillKazi
+            </h1>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-700">
+              Account Created
+            </h2>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-xl p-6 sm:p-8">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold text-green-600">Welcome to BillKazi!</h3>
+              <p className="text-gray-600">
+                A verification email has been sent to <strong>{formData.email}</strong>
+              </p>
+              <p className="text-sm text-gray-600">
+                Please check your email and click the verification link to activate your account.
+              </p>
+              <p className="text-xs text-gray-500">
+                If you don't see the email, check your spam folder.
+              </p>
+              <p className="text-sm text-gray-500 mt-4">
+                Redirecting to login...
+              </p>
+            </div>
+          </div>
+
+          <p className="text-center text-xs sm:text-sm text-gray-500">
+            © 2024 BillKazi. All rights reserved.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
