@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import Login from './pages/login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -25,76 +26,78 @@ function ProtectedRoute({ children }) {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <LanguageProvider>
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/magic-signin" element={<MagicSignin />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create-invoice"
-              element={
-                <ProtectedRoute>
-                  <CreateInvoice />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/edit-invoice/:id"
-              element={
-                <ProtectedRoute>
-                  <EditInvoice />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/invoice/:id"
-              element={
-                <ProtectedRoute>
-                  <InvoiceDetail />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/company-profile"
-              element={
-                <ProtectedRoute>
-                  <CompanyProfile />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/dashboard" />} />
-          </Routes>
-        </Router>
-      </LanguageProvider>
-    </ErrorBoundary>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <ErrorBoundary>
+        <LanguageProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/magic-signin" element={<MagicSignin />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/create-invoice"
+                element={
+                  <ProtectedRoute>
+                    <CreateInvoice />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/edit-invoice/:id"
+                element={
+                  <ProtectedRoute>
+                    <EditInvoice />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/invoice/:id"
+                element={
+                  <ProtectedRoute>
+                    <InvoiceDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/company-profile"
+                element={
+                  <ProtectedRoute>
+                    <CompanyProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/" element={<Navigate to="/dashboard" />} />
+            </Routes>
+          </Router>
+        </LanguageProvider>
+      </ErrorBoundary>
+    </GoogleOAuthProvider>
   );
 }
 
