@@ -14,22 +14,56 @@ const generateToken = () => crypto.randomBytes(32).toString('hex');
 // Helper to create JWT
 const createJWT = (userId) => jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+// Password validation helper
+const validatePassword = (password) => {
+  if (password.length < 12) return 'Password must be at least 12 characters';
+  if (!/[A-Z]/.test(password)) return 'Password must contain an uppercase letter';
+  if (!/[a-z]/.test(password)) return 'Password must contain a lowercase letter';
+  if (!/[0-9]/.test(password)) return 'Password must contain a number';
+  if (!/[!@#$%^&*]/.test(password)) return 'Password must contain a special character (!@#$%^&*)';
+  return null;
+};
+
 // Register with email verification
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, confirmPassword } = req.body;
+
+    // Validate inputs
+    if (!name || !email || !password || !confirmPassword) {
+      return res.status(400).json({ message: 'All fields required' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    // Validate password strength
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'Email already registered' });
     }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create new user
     const user = new User({
       name,
-      email,
-      password,
+      email: email.toLowerCase(),
+      password: hashedPassword,
       emailVerified: false
     });
 
@@ -41,19 +75,30 @@ router.post('/register', async (req, res) => {
       email: email.toLowerCase(),
       token: verificationToken,
       type: 'verify',
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      used: false
     });
     await tokenDoc.save();
 
-    await sendVerificationEmail(email, verificationToken);
+    // Send verification email
+    try {
+      await sendVerificationEmail(email.toLowerCase(), verificationToken);
+    } catch (emailError) {
+      console.error('Email send error:', emailError);
+      // Don't fail registration if email fails, but log it
+      return res.status(201).json({
+        message: 'Account created but email failed. Contact support.',
+        email: email.toLowerCase()
+      });
+    }
 
     res.status(201).json({
       message: 'Account created. Check your email to verify.',
-      email: email
+      email: email.toLowerCase()
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error during registration' });
   }
 });
 
@@ -66,53 +111,62 @@ router.post('/verify-email', async (req, res) => {
       return res.status(400).json({ message: 'Token required' });
     }
 
-    const tokenDoc = await Token.findOne({ token, type: 'verify', used: false });
+    const tokenDoc = await Token.findOne({ 
+      token, 
+      type: 'verify', 
+      used: false,
+      expiresAt: { $gt: new Date() }
+    });
     
     if (!tokenDoc) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
-    }
-
-    if (new Date() > tokenDoc.expiresAt) {
-      return res.status(400).json({ message: 'Token expired' });
+      return res.status(400).json({ message: 'Invalid or expired verification token' });
     }
 
     // Mark user as verified
-    await User.updateOne(
+    const updateResult = await User.updateOne(
       { email: tokenDoc.email },
       { emailVerified: true }
     );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(400).json({ message: 'User not found' });
+    }
 
     // Mark token as used
     tokenDoc.used = true;
     await tokenDoc.save();
 
-    res.json({ message: 'Email verified successfully' });
+    res.json({ message: 'Email verified successfully. You can now log in.' });
   } catch (error) {
     console.error('Verify email error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Error verifying email' });
   }
 });
 
 // Login
 router.post('/login', async (req, res) => {
   try {
-    console.log('Login attempt:', { email: req.body.email });
     const { email, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password required' });
     }
 
+    // Find user
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if email verified
     if (!user.emailVerified) {
-      return res.status(400).json({ message: 'Please verify your email first' });
+      return res.status(403).json({ message: 'Please verify your email first. Check your inbox.' });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Create token
@@ -128,7 +182,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
@@ -157,11 +211,17 @@ router.post('/magic-link', async (req, res) => {
       email: email.toLowerCase(),
       token: magicToken,
       type: 'magic-link',
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+      used: false
     });
     await tokenDoc.save();
 
-    await sendMagicLinkEmail(email.toLowerCase(), magicToken);
+    try {
+      await sendMagicLinkEmail(email.toLowerCase(), magicToken);
+    } catch (emailError) {
+      console.error('Magic link email error:', emailError);
+      return res.status(500).json({ message: 'Failed to send magic link' });
+    }
 
     res.json({ message: 'Magic link sent to your email' });
   } catch (error) {
@@ -179,14 +239,15 @@ router.post('/verify-magic-link', async (req, res) => {
       return res.status(400).json({ message: 'Token required' });
     }
 
-    const tokenDoc = await Token.findOne({ token, type: 'magic-link', used: false });
+    const tokenDoc = await Token.findOne({ 
+      token, 
+      type: 'magic-link', 
+      used: false,
+      expiresAt: { $gt: new Date() }
+    });
     
     if (!tokenDoc) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
-    }
-
-    if (new Date() > tokenDoc.expiresAt) {
-      return res.status(400).json({ message: 'Token expired' });
+      return res.status(400).json({ message: 'Invalid or expired magic link' });
     }
 
     const user = await User.findOne({ email: tokenDoc.email });
@@ -226,7 +287,8 @@ router.post('/forgot-password', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     
     if (!user) {
-      return res.status(400).json({ message: 'Email not found' });
+      // Security best practice: don't reveal if email exists
+      return res.json({ message: 'If email exists, reset link has been sent' });
     }
 
     // Generate reset token
@@ -235,11 +297,17 @@ router.post('/forgot-password', async (req, res) => {
       email: email.toLowerCase(),
       token: resetToken,
       type: 'reset',
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      used: false
     });
     await tokenDoc.save();
 
-    await sendPasswordResetEmail(email.toLowerCase(), resetToken);
+    try {
+      await sendPasswordResetEmail(email.toLowerCase(), resetToken);
+    } catch (emailError) {
+      console.error('Password reset email error:', emailError);
+      return res.status(500).json({ message: 'Failed to send reset email' });
+    }
 
     res.json({ message: 'Password reset link sent to your email' });
   } catch (error) {
@@ -251,43 +319,59 @@ router.post('/forgot-password', async (req, res) => {
 // Reset password
 router.post('/reset-password', async (req, res) => {
   try {
-    const { token, newPassword } = req.body;
+    const { token, newPassword, confirmPassword } = req.body;
 
-    if (!token || !newPassword) {
-      return res.status(400).json({ message: 'Token and new password required' });
+    if (!token || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'Token, password, and confirmation required' });
     }
 
-    const tokenDoc = await Token.findOne({ token, type: 'reset', used: false });
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    // Validate password strength
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+
+    const tokenDoc = await Token.findOne({ 
+      token, 
+      type: 'reset', 
+      used: false,
+      expiresAt: { $gt: new Date() }
+    });
     
     if (!tokenDoc) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
 
-    if (new Date() > tokenDoc.expiresAt) {
-      return res.status(400).json({ message: 'Token expired' });
-    }
-
+    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await User.updateOne(
+    
+    const updateResult = await User.updateOne(
       { email: tokenDoc.email },
       { password: hashedPassword }
     );
+
+    if (updateResult.matchedCount === 0) {
+      return res.status(400).json({ message: 'User not found' });
+    }
 
     // Mark token as used
     tokenDoc.used = true;
     await tokenDoc.save();
 
-    res.json({ message: 'Password reset successfully' });
+    res.json({ message: 'Password reset successfully. You can now log in.' });
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error during password reset' });
   }
 });
 
 // Get profile
 router.get('/profile', auth, async (req, res) => {
   try {
-    console.log('Get profile for user:', req.userId);
     const user = await User.findById(req.userId).select('-password');
     
     if (!user) {
@@ -304,8 +388,6 @@ router.get('/profile', auth, async (req, res) => {
 // Update profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    console.log('Update profile for user:', req.userId);
-    
     const { companyName, phone, address, currency, defaultTemplate } = req.body;
 
     const user = await User.findById(req.userId);
