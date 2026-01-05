@@ -20,17 +20,47 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const validatePassword = (password) => {
+    if (password.length < 12) return 'Password must be at least 12 characters';
+    if (!/[A-Z]/.test(password)) return 'Password must contain an uppercase letter';
+    if (!/[a-z]/.test(password)) return 'Password must contain a lowercase letter';
+    if (!/[0-9]/.test(password)) return 'Password must contain a number';
+    if (!/[!@#$%^&*]/.test(password)) return 'Password must contain a special character (!@#$%^&*)';
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+    // Validate name
+    if (!formData.name.trim()) {
+      setError('Full name is required');
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
+    // Validate email
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    // Validate password strength
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
+    // Check passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -43,6 +73,7 @@ const Register = () => {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          confirmPassword: formData.confirmPassword,
         }
       );
       setSuccess(true);
@@ -91,7 +122,7 @@ const Register = () => {
                 If you don't see the email, check your spam folder.
               </p>
               <p className="text-sm text-gray-500 mt-4">
-                Redirecting to login...
+                Redirecting to login in 3 seconds...
               </p>
             </div>
           </div>
@@ -193,6 +224,9 @@ const Register = () => {
                   )}
                 </button>
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Must be 12+ characters with uppercase, lowercase, number, and special character (!@#$%^&*)
+              </p>
             </div>
 
             <div>
