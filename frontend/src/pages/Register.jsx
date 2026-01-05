@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -271,6 +272,17 @@ const Register = () => {
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton onError={setError} isSignUp={true} />
 
           <div className="mt-6 text-center">
             <p className="text-sm sm:text-base text-gray-600">
