@@ -21,16 +21,17 @@ const GoogleSignInButton = ({ onError, isSignUp = false }) => {
           }
         );
 
-        const { email, name, picture, id: googleId } = response.data;
+        const { email, name, picture, id } = response.data;
+
+        console.log('Google user data:', { email, name, id });
 
         // Send to your backend
         const backendResponse = await axios.post(
           `${import.meta.env.VITE_API_URL}/api/auth/google-signin`,
           {
-            googleId,
+            googleId: id,
             email,
             name,
-            picture,
           }
         );
 
