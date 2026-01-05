@@ -64,7 +64,8 @@ router.post('/register', async (req, res) => {
       name,
       email: email.toLowerCase(),
       password: hashedPassword,
-      emailVerified: false
+      emailVerified: false,
+      authMethod: 'password'
     });
 
     await user.save();
@@ -183,6 +184,56 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
+// Google Sign In / Sign Up
+router.post('/google-signin', async (req, res) => {
+  try {
+    const { googleId, email, name } = req.body;
+
+    if (!googleId || !email || !name) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Find existing user by googleId
+    let user = await User.findOne({ googleId });
+
+    if (!user) {
+      // Check if email already exists with password auth
+      const existingEmail = await User.findOne({ email: email.toLowerCase() });
+      if (existingEmail) {
+        return res.status(400).json({ message: 'Email already registered with password login. Please sign in with password instead.' });
+      }
+
+      // Create new user with Google
+      user = new User({
+        email: email.toLowerCase(),
+        name,
+        googleId,
+        authMethod: 'google',
+        emailVerified: true, // Google emails are pre-verified
+        password: null
+      });
+
+      await user.save();
+    }
+
+    // Create JWT token
+    const token = createJWT(user._id);
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        authMethod: user.authMethod
+      }
+    });
+  } catch (error) {
+    console.error('Google sign-in error:', error);
+    res.status(500).json({ message: 'Google sign-in failed' });
   }
 });
 
