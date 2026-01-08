@@ -19,6 +19,7 @@ if (missingEnvVars.length > 0) {
 console.log('✅ Environment variables validated');
 
 const app = express();
+app.set('trust proxy', 1);  // Trust Railway's proxy
 
 // Security Middleware
 app.use(helmet());
