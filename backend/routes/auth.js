@@ -159,6 +159,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check if user has a password (might be Google-only account)
+    if (!user.password) {
+      return res.status(401).json({ message: 'This account uses Google sign-in. Please sign in with Google.' });
+    }
+
     // Check if email verified
     if (!user.emailVerified) {
       return res.status(403).json({ message: 'Please verify your email first. Check your inbox.' });
@@ -196,26 +201,28 @@ router.post('/google-signin', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Find existing user by googleId
-    let user = await User.findOne({ googleId });
+    // Find existing user by googleId or email
+    let user = await User.findOne({ 
+      $or: [{ googleId }, { email: email.toLowerCase() }] 
+    });
 
-    if (!user) {
-      // Check if email already exists with password auth
-      const existingEmail = await User.findOne({ email: email.toLowerCase() });
-      if (existingEmail) {
-        return res.status(400).json({ message: 'Email already registered with password login. Please sign in with password instead.' });
+    if (user) {
+      // If user exists but doesn't have googleId, link the account
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.emailVerified = true;
+        await user.save();
       }
-
+    } else {
       // Create new user with Google
       user = new User({
         email: email.toLowerCase(),
         name,
         googleId,
         authMethod: 'google',
-        emailVerified: true, // Google emails are pre-verified
+        emailVerified: true,
         password: null
       });
-
       await user.save();
     }
 
