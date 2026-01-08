@@ -16,8 +16,22 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: false,  // Changed: not required for Google users
     minlength: 6
+  },
+  googleId: {
+    type: String,
+    default: null,
+    sparse: true
+  },
+  authMethod: {
+    type: String,
+    enum: ['password', 'google'],
+    default: 'password'
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
   },
   companyName: {
     type: String,
@@ -70,9 +84,9 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Hash password before saving
+// Hash password before saving (only if password exists and is modified)
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
+  if (!this.password || !this.isModified('password')) {
     return next();
   }
   
@@ -87,6 +101,7 @@ userSchema.pre('save', async function(next) {
 
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
