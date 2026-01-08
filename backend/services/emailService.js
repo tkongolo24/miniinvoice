@@ -6,7 +6,7 @@ const sendEmail = async (to, subject, html) => {
   try {
     await sgMail.send({
       to,
-      from: 'michealkongolo24@gmail.com',
+      from: 'noreply@billkazi.me',
       subject,
       html,
     });
