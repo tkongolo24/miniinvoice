@@ -97,8 +97,8 @@ const invoiceSchema = new mongoose.Schema({
     default: 'unpaid'
   },
   emailVerified: {
-  type: Boolean,
-  default: false
+    type: Boolean,
+    default: false
   },
   notes: {
     type: String,
@@ -108,6 +108,18 @@ const invoiceSchema = new mongoose.Schema({
     type: String,
     enum: ['classic', 'modern', 'elegant'],
     default: 'classic'
+  },
+  reminderEnabled: {
+    type: Boolean,
+    default: true
+  },
+  remindersSent: {
+    type: Number,
+    default: 0
+  },
+  lastReminderSent: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

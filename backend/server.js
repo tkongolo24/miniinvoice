@@ -19,11 +19,11 @@ if (missingEnvVars.length > 0) {
 console.log('✅ Environment variables validated');
 
 const app = express();
-app.set('trust proxy', 1);  // Trust Railway's proxy
+app.set('trust proxy', 1);
 
 // Security Middleware
 app.use(helmet());
-app.use(mongoSanitize()); // Prevent MongoDB injection
+app.use(mongoSanitize());
 
 // CORS Configuration
 const allowedOrigins = [
@@ -36,10 +36,7 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list or matches Vercel preview pattern
     if (allowedOrigins.includes(origin) || /https:\/\/billkazi.*\.vercel\.app$/.test(origin)) {
       callback(null, true);
     } else {
@@ -58,8 +55,8 @@ app.use('/uploads', express.static('uploads'));
 
 // Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
@@ -67,7 +64,7 @@ app.use('/api/', limiter);
 // Stricter rate limit for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50, // 5 attempts per 15 minutes
+  max: 50,
   skipSuccessfulRequests: true,
   message: 'Too many login attempts, please try again later.'
 });
@@ -105,11 +102,78 @@ app.use((err, req, res, next) => {
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected'))
+  .then(() => {
+    console.log('✅ MongoDB connected');
+    startReminderScheduler();
+  })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
+
+// Payment Reminder Scheduler
+const Invoice = require('./models/invoice');
+const User = require('./models/user');
+const { sendPaymentReminderEmail } = require('./services/emailService');
+
+const sendPaymentReminders = async () => {
+  console.log('🔔 Running payment reminder check...');
+  
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const overdueInvoices = await Invoice.find({
+      status: 'unpaid',
+      reminderEnabled: true,
+      dueDate: { $lte: today },
+      remindersSent: { $lt: 3 },
+      $or: [
+        { lastReminderSent: null },
+        { lastReminderSent: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) } }
+      ]
+    }).populate('user', 'companyName');
+
+    console.log(`📧 Found ${overdueInvoices.length} invoices needing reminders`);
+
+    for (const invoice of overdueInvoices) {
+      const daysOverdue = Math.floor((today - new Date(invoice.dueDate)) / (1000 * 60 * 60 * 24));
+      
+      const invoiceData = {
+        invoiceNumber: invoice.invoiceNumber,
+        clientName: invoice.clientName,
+        total: invoice.total,
+        currency: invoice.currency,
+        dueDate: invoice.dueDate,
+        daysOverdue
+      };
+
+      const companyName = invoice.user?.companyName || '';
+      
+      const sent = await sendPaymentReminderEmail(
+        invoice.clientEmail,
+        invoiceData,
+        companyName
+      );
+
+      if (sent) {
+        invoice.remindersSent += 1;
+        invoice.lastReminderSent = new Date();
+        await invoice.save();
+        console.log(`✅ Reminder sent for invoice #${invoice.invoiceNumber}`);
+      } else {
+        console.log(`❌ Failed to send reminder for invoice #${invoice.invoiceNumber}`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error sending payment reminders:', error);
+  }
+};
+
+const startReminderScheduler = () => {
+  setInterval(sendPaymentReminders, 6 * 60 * 60 * 1000);
+  console.log('✅ Payment reminder scheduler started (runs every 6 hours)');
+};
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
@@ -126,14 +190,10 @@ app.listen(PORT, () => {
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-// Catch unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Promise Rejection:', err);
-  // Don't exit in production, just log
 });
 
-// Catch uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
-  // Don't exit in production, just log
 });

@@ -1,4 +1,3 @@
-// services/emailService.js
 const sgMail = require('@sendgrid/mail');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -54,8 +53,69 @@ const sendPasswordResetEmail = async (email, token) => {
   return sendEmail(email, 'Reset Your BillKazi Password', html);
 };
 
+const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName) => {
+  const { invoiceNumber, clientName, total, currency, dueDate, daysOverdue } = invoiceData;
+  
+  const currencySymbols = { RWF: 'RWF', KES: 'KES', NGN: 'NGN' };
+  const symbol = currencySymbols[currency] || currency;
+  
+  const subject = daysOverdue > 0 
+    ? `Payment Overdue: Invoice #${invoiceNumber}` 
+    : `Payment Reminder: Invoice #${invoiceNumber}`;
+  
+  const urgencyText = daysOverdue > 0
+    ? `<p style="color: #dc2626; font-weight: bold;">This invoice is ${daysOverdue} day${daysOverdue > 1 ? 's' : ''} overdue.</p>`
+    : `<p>This invoice is due on ${new Date(dueDate).toLocaleDateString()}.</p>`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #2563eb; padding: 20px; text-align: center;">
+        <h1 style="color: white; margin: 0;">Payment Reminder</h1>
+      </div>
+      
+      <div style="padding: 30px; background-color: #f9fafb;">
+        <p>Hi ${clientName},</p>
+        
+        <p>This is a friendly reminder about your outstanding invoice from <strong>${companyName || 'us'}</strong>.</p>
+        
+        ${urgencyText}
+        
+        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <table style="width: 100%;">
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Invoice Number:</td>
+              <td style="padding: 8px 0; font-weight: bold; text-align: right;">#${invoiceNumber}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Amount Due:</td>
+              <td style="padding: 8px 0; font-weight: bold; text-align: right; color: #2563eb; font-size: 18px;">${symbol} ${total.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Due Date:</td>
+              <td style="padding: 8px 0; font-weight: bold; text-align: right;">${new Date(dueDate).toLocaleDateString()}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <p>Please arrange payment at your earliest convenience. If you've already made the payment, kindly disregard this reminder.</p>
+        
+        <p>If you have any questions about this invoice, please don't hesitate to reach out.</p>
+        
+        <p style="margin-top: 30px;">Thank you for your business!</p>
+        
+        <p style="color: #6b7280; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+          This is an automated reminder sent via BillKazi.
+        </p>
+      </div>
+    </div>
+  `;
+  
+  return sendEmail(clientEmail, subject, html);
+};
+
 module.exports = {
   sendVerificationEmail,
   sendMagicLinkEmail,
   sendPasswordResetEmail,
+  sendPaymentReminderEmail,
 };

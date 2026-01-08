@@ -24,7 +24,7 @@ const validatePassword = (password) => {
   return null;
 };
 
-// Register with email verification
+// Register with email verification (OPTIMIZED FOR SPEED)
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, confirmPassword } = req.body;
@@ -50,8 +50,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Invalid email format' });
     }
 
+    const normalizedEmail = email.toLowerCase();
+
     // Check if user exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
@@ -59,40 +61,36 @@ router.post('/register', async (req, res) => {
     // Create new user (password will be hashed by pre-save hook)
     const user = new User({
       name,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password,
       emailVerified: false,
       authMethod: 'password'
     });
 
-    await user.save();
-
-    // Generate and send verification token
+    // Generate verification token
     const verificationToken = generateToken();
     const tokenDoc = new Token({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       token: verificationToken,
       type: 'verify',
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       used: false
     });
-    await tokenDoc.save();
 
-    // Send verification email
-    try {
-      await sendVerificationEmail(email.toLowerCase(), verificationToken);
-    } catch (emailError) {
-      console.error('Email send error:', emailError);
-      return res.status(201).json({
-        message: 'Account created but email failed. Contact support.',
-        email: email.toLowerCase()
-      });
-    }
+    // Save user and token in parallel
+    await Promise.all([user.save(), tokenDoc.save()]);
 
+    // Send response immediately, email sends in background
     res.status(201).json({
       message: 'Account created. Check your email to verify.',
-      email: email.toLowerCase()
+      email: normalizedEmail
     });
+
+    // Send email in background (non-blocking)
+    sendVerificationEmail(normalizedEmail, verificationToken).catch(err => {
+      console.error('Background email send error:', err);
+    });
+
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ message: 'Server error during registration' });
@@ -265,19 +263,19 @@ router.post('/magic-link', async (req, res) => {
       email: email.toLowerCase(),
       token: magicToken,
       type: 'magic-link',
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       used: false
     });
     await tokenDoc.save();
 
-    try {
-      await sendMagicLinkEmail(email.toLowerCase(), magicToken);
-    } catch (emailError) {
-      console.error('Magic link email error:', emailError);
-      return res.status(500).json({ message: 'Failed to send magic link' });
-    }
-
+    // Send response immediately
     res.json({ message: 'Magic link sent to your email' });
+
+    // Send email in background
+    sendMagicLinkEmail(email.toLowerCase(), magicToken).catch(err => {
+      console.error('Background magic link email error:', err);
+    });
+
   } catch (error) {
     console.error('Magic link error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -341,7 +339,6 @@ router.post('/forgot-password', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     
     if (!user) {
-      // Security best practice: don't reveal if email exists
       return res.json({ message: 'If email exists, reset link has been sent' });
     }
 
@@ -351,19 +348,19 @@ router.post('/forgot-password', async (req, res) => {
       email: email.toLowerCase(),
       token: resetToken,
       type: 'reset',
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
       used: false
     });
     await tokenDoc.save();
 
-    try {
-      await sendPasswordResetEmail(email.toLowerCase(), resetToken);
-    } catch (emailError) {
-      console.error('Password reset email error:', emailError);
-      return res.status(500).json({ message: 'Failed to send reset email' });
-    }
-
+    // Send response immediately
     res.json({ message: 'Password reset link sent to your email' });
+
+    // Send email in background
+    sendPasswordResetEmail(email.toLowerCase(), resetToken).catch(err => {
+      console.error('Background password reset email error:', err);
+    });
+
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ message: 'Server error' });
