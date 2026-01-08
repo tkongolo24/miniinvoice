@@ -88,6 +88,24 @@ const InvoiceDetail = () => {
     }
   };
 
+  const shareOnWhatsApp = () => {
+    const currency = getCurrencySymbol(invoice.currency);
+    const message = `Hi ${invoice.clientName},
+
+Here's your invoice from ${companySettings?.companyName || 'us'}:
+
+📄 Invoice #: ${invoice.invoiceNumber}
+💰 Amount: ${currency} ${invoice.total?.toFixed(2)}
+📅 Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}
+
+Please let me know if you have any questions.
+
+Thank you for your business!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  };
+
   const getCurrencySymbol = (currency) => {
     const symbols = {
       'RWF': 'RWF',
@@ -583,6 +601,13 @@ const InvoiceDetail = () => {
             className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
           >
             📄 Download PDF
+          </button>
+
+          <button
+            onClick={shareOnWhatsApp}
+            className="bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
+          >
+            💬 WhatsApp
           </button>
 
           <div className="relative">
