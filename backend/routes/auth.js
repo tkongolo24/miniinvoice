@@ -56,14 +56,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new user
+    // Create new user (password will be hashed by pre-save hook)
     const user = new User({
       name,
       email: email.toLowerCase(),
-      password: hashedPassword,
+      password,
       emailVerified: false,
       authMethod: 'password'
     });
@@ -86,7 +83,6 @@ router.post('/register', async (req, res) => {
       await sendVerificationEmail(email.toLowerCase(), verificationToken);
     } catch (emailError) {
       console.error('Email send error:', emailError);
-      // Don't fail registration if email fails, but log it
       return res.status(201).json({
         message: 'Account created but email failed. Contact support.',
         email: email.toLowerCase()
@@ -170,7 +166,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Check password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -404,17 +400,14 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    
-    const updateResult = await User.updateOne(
-      { email: tokenDoc.email },
-      { password: hashedPassword }
-    );
-
-    if (updateResult.matchedCount === 0) {
+    // Find user and update password (will be hashed by pre-save hook)
+    const user = await User.findOne({ email: tokenDoc.email });
+    if (!user) {
       return res.status(400).json({ message: 'User not found' });
     }
+
+    user.password = newPassword;
+    await user.save();
 
     // Mark token as used
     tokenDoc.used = true;
