@@ -10,7 +10,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './contexts/LanguageContext';
-import CompanyProfile from './pages/CompanyProfile';
+import CompanyProfile from './pages/companyprofile';
 import VerifyEmail from './pages/VerifyEmail';
 import { inject } from '@vercel/analytics';
 import MagicSignin from './pages/MagicSignin';

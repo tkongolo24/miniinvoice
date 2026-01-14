@@ -106,6 +106,49 @@ Thank you for your business!`;
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
+  const sendPaymentReminder = () => {
+    const currency = getCurrencySymbol(invoice.currency);
+    const dueDate = new Date(invoice.dueDate);
+    const today = new Date();
+    const diffTime = today - dueDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const isOverdue = diffDays > 0;
+
+    let message;
+
+    if (isOverdue) {
+      message = `Hi ${invoice.clientName},
+
+I hope this message finds you well. This is a friendly reminder about an outstanding invoice.
+
+📄 Invoice #: ${invoice.invoiceNumber}
+💰 Amount Due: ${currency} ${invoice.total?.toFixed(2)}
+📅 Due Date: ${dueDate.toLocaleDateString()}
+⚠️ Days Overdue: ${diffDays} day${diffDays > 1 ? 's' : ''}
+
+Please let me know if you have any questions or if there's anything I can help with regarding this payment.
+
+Thank you!
+${companySettings?.companyName || ''}`;
+    } else {
+      message = `Hi ${invoice.clientName},
+
+I hope you're doing well. This is a gentle reminder that the following invoice will be due soon.
+
+📄 Invoice #: ${invoice.invoiceNumber}
+💰 Amount: ${currency} ${invoice.total?.toFixed(2)}
+📅 Due Date: ${dueDate.toLocaleDateString()}
+
+Please let me know if you have any questions.
+
+Thank you!
+${companySettings?.companyName || ''}`;
+    }
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  };
+
   const getCurrencySymbol = (currency) => {
     const symbols = {
       'RWF': 'RWF',
@@ -595,7 +638,7 @@ Thank you for your business!`;
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={generatePDF}
             className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
@@ -607,8 +650,18 @@ Thank you for your business!`;
             onClick={shareOnWhatsApp}
             className="bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
           >
-            💬 WhatsApp
+            💬 Share
           </button>
+
+          {/* Payment Reminder - Only show for unpaid invoices */}
+          {invoice.status !== 'paid' && (
+            <button
+              onClick={sendPaymentReminder}
+              className="bg-orange-500 text-white px-4 py-3 rounded-lg hover:bg-orange-600 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
+            >
+              ⏰ Remind
+            </button>
+          )}
 
           <div className="relative">
             <button
