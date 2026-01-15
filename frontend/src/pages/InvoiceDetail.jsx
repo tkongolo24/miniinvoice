@@ -191,6 +191,180 @@ ${companySettings?.companyName || ''}`;
     generateClassicPDF();
   };
 
+  // Generate Receipt PDF
+  const generateReceipt = () => {
+    if (!invoice || invoice.status !== 'paid') return;
+
+    const doc = new jsPDF();
+    const currency = getCurrencySymbol(invoice.currency);
+    const receiptNumber = `REC-${invoice.invoiceNumber.replace('INV-', '').replace('inv-', '')}`;
+    const paymentDate = new Date().toLocaleDateString();
+
+    // Header with green color (to distinguish from invoice)
+    doc.setFillColor(22, 163, 74);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(32);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RECEIPT', 105, 26, { align: 'center' });
+
+    // Company Info (right side)
+    let companyStartY = 50;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    
+    if (companySettings?.companyName) {
+      doc.text(companySettings.companyName, 190, companyStartY, { align: 'right' });
+      companyStartY += 6;
+    }
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
+    if (companySettings?.address) {
+      doc.text(companySettings.address, 190, companyStartY, { align: 'right' });
+      companyStartY += 5;
+    }
+    
+    if (companySettings?.phone) {
+      doc.text(companySettings.phone, 190, companyStartY, { align: 'right' });
+      companyStartY += 5;
+    }
+    
+    if (companySettings?.contactEmail) {
+      doc.text(companySettings.contactEmail, 190, companyStartY, { align: 'right' });
+      companyStartY += 5;
+    }
+    
+    if (companySettings?.businessRegNumber) {
+      doc.text(companySettings.businessRegNumber, 190, companyStartY, { align: 'right' });
+    }
+
+    // Receipt Details (left side)
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Receipt #: ${receiptNumber}`, 20, 50);
+    doc.text(`Date: ${paymentDate}`, 20, 58);
+    doc.text(`For Invoice: ${invoice.invoiceNumber}`, 20, 66);
+
+    // Received From Section
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Received From:', 20, 85);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(invoice.clientName, 20, 94);
+    doc.text(invoice.clientEmail, 20, 102);
+    if (invoice.clientAddress) {
+      const addressLines = doc.splitTextToSize(invoice.clientAddress, 80);
+      doc.text(addressLines, 20, 110);
+    }
+
+    // Payment Details Box
+    const boxY = 130;
+    doc.setFillColor(240, 253, 244);
+    doc.setDrawColor(22, 163, 74);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(20, boxY, 170, 60, 3, 3, 'FD');
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(22, 163, 74);
+    doc.text('PAYMENT CONFIRMED', 105, boxY + 15, { align: 'center' });
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    
+    // Payment details inside box
+    const detailsStartY = boxY + 28;
+    doc.text('Description:', 30, detailsStartY);
+    doc.text(`Payment for Invoice ${invoice.invoiceNumber}`, 80, detailsStartY);
+    
+    doc.text('Amount Paid:', 30, detailsStartY + 12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(`${currency} ${invoice.total?.toFixed(2)}`, 80, detailsStartY + 12);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text('Payment Status:', 30, detailsStartY + 24);
+    doc.setTextColor(22, 163, 74);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PAID IN FULL', 80, detailsStartY + 24);
+
+    // Items Summary
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Items Summary:', 20, 205);
+
+    const tableData = invoice.items.map((item) => [
+      item.description,
+      item.quantity,
+      `${currency} ${(item.quantity * item.unitPrice).toFixed(2)}`,
+    ]);
+
+    autoTable(doc, {
+      startY: 212,
+      head: [['Description', 'Qty', 'Amount']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [22, 163, 74], textColor: [255, 255, 255] },
+      styles: { fontSize: 10 },
+      columnStyles: {
+        0: { cellWidth: 100 },
+        1: { cellWidth: 30, halign: 'center' },
+        2: { cellWidth: 40, halign: 'right' },
+      },
+    });
+
+    // Total
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total Paid:', 120, finalY);
+    doc.setTextColor(22, 163, 74);
+    doc.text(`${currency} ${invoice.total?.toFixed(2)}`, 190, finalY, { align: 'right' });
+
+    // Thank you message
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Thank you for your payment!', 105, finalY + 20, { align: 'center' });
+
+    // Watermark
+    addWatermark(doc);
+
+    doc.save(`Receipt-${receiptNumber}.pdf`);
+  };
+
+  // Share receipt on WhatsApp
+  const shareReceiptOnWhatsApp = () => {
+    if (!invoice || invoice.status !== 'paid') return;
+    
+    const currency = getCurrencySymbol(invoice.currency);
+    const receiptNumber = `REC-${invoice.invoiceNumber.replace('INV-', '').replace('inv-', '')}`;
+    
+    const message = `Hi ${invoice.clientName},
+
+Thank you for your payment! Here are your receipt details:
+
+🧾 Receipt #: ${receiptNumber}
+📄 For Invoice: ${invoice.invoiceNumber}
+💰 Amount Paid: ${currency} ${invoice.total?.toFixed(2)}
+✅ Status: PAID IN FULL
+📅 Date: ${new Date().toLocaleDateString()}
+
+Thank you for your business!
+${companySettings?.companyName || ''}`;
+
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  };
+
   const generateClassicPDF = () => {
     const doc = new jsPDF();
     const currency = getCurrencySymbol(invoice.currency);
@@ -656,6 +830,16 @@ ${companySettings?.companyName || ''}`;
             📄 Download PDF
           </button>
 
+          {/* Receipt Button - Only show for paid invoices */}
+          {invoice.status === 'paid' && (
+            <button
+              onClick={generateReceipt}
+              className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
+            >
+              🧾 Receipt
+            </button>
+          )}
+
           <button
             onClick={shareOnWhatsApp}
             className="bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
@@ -697,6 +881,19 @@ ${companySettings?.companyName || ''}`;
                     ? '○ Mark Unpaid'
                     : '✓ Mark Paid'}
                 </button>
+
+                {/* Share Receipt on WhatsApp - Only for paid invoices */}
+                {invoice.status === 'paid' && (
+                  <button
+                    onClick={() => {
+                      shareReceiptOnWhatsApp();
+                      setShowMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    📤 Share Receipt
+                  </button>
+                )}
                 
                 <button
                   onClick={() => {
