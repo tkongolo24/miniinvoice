@@ -16,6 +16,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import { inject } from '@vercel/analytics';
 import MagicSignin from './pages/MagicSignin';
 import ResetPassword from './pages/ResetPassword';
+import LandingPage from './pages/LandingPage';
 
 inject();
 
@@ -32,6 +33,7 @@ function App() {
         <LanguageProvider>
           <Router>
             <Routes>
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
@@ -94,7 +96,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/" element={<Navigate to="/dashboard" />} />
             </Routes>
           </Router>
         </LanguageProvider>
