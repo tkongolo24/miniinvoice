@@ -1,162 +1,30 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const InvoiceDetail = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+const PublicInvoice = () => {
+  const { shareToken } = useParams();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showMenu, setShowMenu] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [companySettings, setCompanySettings] = useState(null);
 
   useEffect(() => {
     fetchInvoice();
-    fetchCompanySettings();
-  }, [id]);
+  }, [shareToken]);
 
   const fetchInvoice = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/invoices/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `${import.meta.env.VITE_API_URL}/api/invoices/public/${shareToken}`
       );
       setInvoice(response.data);
       setLoading(false);
     } catch (err) {
-      setError('Failed to load invoice');
+      setError('Invoice not found or link has expired');
       setLoading(false);
-      if (err.response?.status === 401) {
-        navigate('/login');
-      }
     }
-  };
-
-  const fetchCompanySettings = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/settings`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setCompanySettings(response.data);
-    } catch (err) {
-      console.error('Failed to load company settings');
-    }
-  };
-
-  const toggleStatus = async () => {
-    setUpdatingStatus(true);
-    try {
-      const token = localStorage.getItem('token');
-      const newStatus = invoice.status === 'paid' ? 'unpaid' : 'paid';
-      const response = await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/invoices/${id}/status`,
-        { status: newStatus },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setInvoice(response.data);
-    } catch (err) {
-      alert('Failed to update status');
-    } finally {
-      setUpdatingStatus(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this invoice?')) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/invoices/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      navigate('/dashboard');
-    } catch (err) {
-      alert('Failed to delete invoice');
-    }
-  };
-
-  const shareOnWhatsApp = () => {
-    const currency = getCurrencySymbol(invoice.currency);
-    const shareUrl = invoice.shareToken 
-      ? `https://billkazi.me/i/${invoice.shareToken}`
-      : null;
-    
-    const message = `Hi ${invoice.clientName},
-
-Here's your invoice from ${companySettings?.companyName || 'us'}:
-
-📄 Invoice #: ${invoice.invoiceNumber}
-💰 Amount: ${currency} ${invoice.total?.toFixed(2)}
-📅 Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}
-${shareUrl ? `\n🔗 View Invoice: ${shareUrl}` : ''}
-
-Please let me know if you have any questions.
-
-Thank you for your business!`;
-
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
-  };
-
-  const sendPaymentReminder = () => {
-    const currency = getCurrencySymbol(invoice.currency);
-    const dueDate = new Date(invoice.dueDate);
-    const today = new Date();
-    const diffTime = today - dueDate;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const isOverdue = diffDays > 0;
-    const shareUrl = invoice.shareToken 
-      ? `https://billkazi.me/i/${invoice.shareToken}`
-      : null;
-
-    let message;
-
-    if (isOverdue) {
-      message = `Hi ${invoice.clientName},
-
-I hope this message finds you well. This is a friendly reminder about an outstanding invoice.
-
-📄 Invoice #: ${invoice.invoiceNumber}
-💰 Amount Due: ${currency} ${invoice.total?.toFixed(2)}
-📅 Due Date: ${dueDate.toLocaleDateString()}
-⚠️ Days Overdue: ${diffDays} day${diffDays > 1 ? 's' : ''}
-${shareUrl ? `\n🔗 View Invoice: ${shareUrl}` : ''}
-
-Please let me know if you have any questions or if there's anything I can help with regarding this payment.
-
-Thank you!
-${companySettings?.companyName || ''}`;
-    } else {
-      message = `Hi ${invoice.clientName},
-
-I hope you're doing well. This is a gentle reminder that the following invoice will be due soon.
-
-📄 Invoice #: ${invoice.invoiceNumber}
-💰 Amount: ${currency} ${invoice.total?.toFixed(2)}
-📅 Due Date: ${dueDate.toLocaleDateString()}
-${shareUrl ? `\n🔗 View Invoice: ${shareUrl}` : ''}
-
-Please let me know if you have any questions.
-
-Thank you!
-${companySettings?.companyName || ''}`;
-    }
-
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
   const getCurrencySymbol = (currency) => {
@@ -178,20 +46,9 @@ ${companySettings?.companyName || ''}`;
     return parseFloat(invoice.discount) || 0;
   };
 
-  const addWatermark = (doc) => {
-    const pageHeight = doc.internal.pageSize.height;
-    doc.setFontSize(14);
-    doc.setTextColor(100, 100, 100);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Powered by BillKazi', 105, pageHeight - 10, { align: 'center' });
-  };
-
   const generatePDF = () => {
     if (!invoice) return;
-    generateClassicPDF();
-  };
 
-  const generateClassicPDF = () => {
     const doc = new jsPDF();
     const currency = getCurrencySymbol(invoice.currency);
     const calculatedDiscount = calculateDiscount();
@@ -203,39 +60,6 @@ ${companySettings?.companyName || ''}`;
     doc.setFontSize(28);
     doc.setFont('helvetica', 'bold');
     doc.text('INVOICE', 20, 22);
-
-    // Company Info (right side of header area)
-    let companyStartY = 45;
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    
-    if (companySettings?.companyName) {
-      doc.text(companySettings.companyName, 190, companyStartY, { align: 'right' });
-      companyStartY += 6;
-    }
-    
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    
-    if (companySettings?.address) {
-      doc.text(companySettings.address, 190, companyStartY, { align: 'right' });
-      companyStartY += 5;
-    }
-    
-    if (companySettings?.phone) {
-      doc.text(companySettings.phone, 190, companyStartY, { align: 'right' });
-      companyStartY += 5;
-    }
-    
-    if (companySettings?.contactEmail) {
-      doc.text(companySettings.contactEmail, 190, companyStartY, { align: 'right' });
-      companyStartY += 5;
-    }
-    
-    if (companySettings?.businessRegNumber) {
-      doc.text(companySettings.businessRegNumber, 190, companyStartY, { align: 'right' });
-    }
 
     // Invoice Details
     doc.setTextColor(0, 0, 0);
@@ -291,11 +115,9 @@ ${companySettings?.companyName || ''}`;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
     
-    // Items Total (incl. VAT)
     doc.text('Items Total (incl. VAT):', leftAlign, finalY);
     doc.text(`${currency} ${grossPrice.toFixed(2)}`, rightAlign, finalY, { align: 'right' });
     
-    // Discount (if applicable)
     if (discount > 0) {
       doc.setTextColor(220, 38, 38);
       const discountLabel = invoice.discountType === 'percentage' 
@@ -306,40 +128,33 @@ ${companySettings?.companyName || ''}`;
       doc.setTextColor(0, 0, 0);
     }
     
-    // Subtotal after discount
     const subtotalLine = discount > 0 ? finalY + 20 : finalY + 10;
     doc.setFont('helvetica', 'bold');
     doc.text('Subtotal after discount:', leftAlign, subtotalLine);
     doc.text(`${currency} ${discountedGross.toFixed(2)}`, rightAlign, subtotalLine, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     
-    // Net Amount
     const netLine = subtotalLine + 10;
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
     doc.text('Net Amount (excl. VAT):', leftAlign, netLine);
     doc.text(`${currency} ${netAmount.toFixed(2)}`, rightAlign, netLine, { align: 'right' });
     
-    // VAT
     doc.text(`VAT (${invoice.taxRate || 18}%):`, leftAlign, netLine + 7);
     doc.text(`${currency} ${tax.toFixed(2)}`, rightAlign, netLine + 7, { align: 'right' });
     doc.setTextColor(0, 0, 0);
     
-    // Separator line
     const separatorLine = netLine + 12;
     doc.setDrawColor(37, 99, 235);
     doc.setLineWidth(0.5);
     doc.line(leftAlign, separatorLine, rightAlign, separatorLine);
     
-    // Total Payable
     const totalLine = separatorLine + 7;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text('Total Payable:', leftAlign, totalLine);
     doc.text(`${currency} ${total.toFixed(2)}`, rightAlign, totalLine, { align: 'right' });
 
-    // Notes
-    let notesEndY = totalLine;
     if (invoice.notes) {
       const notesStartY = totalLine + 15;
       doc.setFont('helvetica', 'bold');
@@ -349,22 +164,14 @@ ${companySettings?.companyName || ''}`;
       doc.setFontSize(10);
       const notesLines = doc.splitTextToSize(invoice.notes, 170);
       doc.text(notesLines, 20, notesStartY + 7);
-      notesEndY = notesStartY + 7 + (notesLines.length * 5);
     }
 
-    // Invoice Footer (from company settings)
-    if (companySettings?.invoiceFooter) {
-      const footerStartY = notesEndY + 15;
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
-      const footerLines = doc.splitTextToSize(companySettings.invoiceFooter, 170);
-      doc.text(footerLines, 105, footerStartY, { align: 'center' });
-      doc.setTextColor(0, 0, 0);
-    }
-
-    // Add watermark
-    addWatermark(doc);
+    // Watermark
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(14);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Powered by BillKazi', 105, pageHeight - 10, { align: 'center' });
 
     doc.save(`Invoice-${invoice.invoiceNumber}.pdf`);
   };
@@ -384,13 +191,15 @@ ${companySettings?.companyName || ''}`;
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-red-600 text-lg mb-4">{error || 'Invoice not found'}</p>
-          <Link
-            to="/dashboard"
+          <div className="text-6xl mb-4">📄</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invoice Not Found</h1>
+          <p className="text-gray-600 mb-6">{error || 'This invoice link is invalid or has expired.'}</p>
+          <a
+            href="https://billkazi.me"
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            ← Back to Dashboard
-          </Link>
+            Visit BillKazi →
+          </a>
         </div>
       </div>
     );
@@ -405,81 +214,31 @@ ${companySettings?.companyName || ''}`;
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header with Actions */}
-        <div className="mb-6 sm:mb-8">
-          <Link
-            to="/dashboard"
-            className="text-blue-600 hover:text-blue-700 mb-4 text-sm sm:text-base flex items-center"
-          >
-            ← Back to Dashboard
-          </Link>
+        {/* Header */}
+        <div className="mb-6 sm:mb-8 text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Invoice {invoice.invoiceNumber}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            Issued on {new Date(invoice.dateIssued).toLocaleDateString()}
+          </p>
           
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                Invoice {invoice.invoiceNumber}
-              </h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">
-                Created on {new Date(invoice.dateIssued).toLocaleDateString()}
-              </p>
-            </div>
-            
-            {/* Status Badge */}
-            <div>
-              <span
-                className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${
-                  invoice.status === 'paid'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-orange-100 text-orange-800'
-                }`}
-              >
-                {invoice.status === 'paid' ? '✓ Paid' : 'Unpaid'}
-              </span>
-            </div>
+          {/* Status Badge */}
+          <div className="mt-4">
+            <span
+              className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${
+                invoice.status === 'paid'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-orange-100 text-orange-800'
+              }`}
+            >
+              {invoice.status === 'paid' ? '✓ Paid' : '⏳ Awaiting Payment'}
+            </span>
           </div>
         </div>
 
         {/* Invoice Content */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8 mb-6 border-t-4 border-blue-600">
-          {/* Company Header */}
-          {companySettings && (companySettings.companyName || companySettings.logo) && (
-            <div className="flex justify-between items-start mb-6 pb-4 border-b">
-              <div className="flex items-center gap-4">
-                {companySettings.logo && (
-                  <img
-                    src={`${import.meta.env.VITE_API_URL}${companySettings.logo}`}
-                    alt="Company Logo"
-                    className="w-16 h-16 object-contain"
-                  />
-                )}
-                <div>
-                  {companySettings.companyName && (
-                    <h2 className="text-xl font-bold text-gray-900">{companySettings.companyName}</h2>
-                  )}
-                  {companySettings.address && (
-                    <p className="text-sm text-gray-600">{companySettings.address}</p>
-                  )}
-                </div>
-              </div>
-              <div className="text-right text-sm text-gray-600">
-                {companySettings.phone && <p>{companySettings.phone}</p>}
-                {companySettings.contactEmail && <p>{companySettings.contactEmail}</p>}
-                {companySettings.businessRegNumber && (
-                  <p className="font-medium">{companySettings.businessRegNumber}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Template Info */}
-          <div className="mb-6 pb-4 border-b">
-            <p className="text-sm text-gray-600">
-              Template: <span className="font-medium capitalize">{invoice.template || 'Classic'}</span>
-              {' | '}
-              Currency: <span className="font-medium">{getCurrencySymbol(invoice.currency)}</span>
-            </p>
-          </div>
-
           {/* Invoice Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
             {/* Client Information */}
@@ -499,6 +258,10 @@ ${companySettings?.companyName || ''}`;
               <h2 className="text-lg font-semibold text-gray-900 mb-3">Invoice Details</h2>
               <div className="space-y-2 text-sm sm:text-base">
                 <div className="flex justify-between">
+                  <span className="text-gray-600">Invoice Number:</span>
+                  <span className="font-medium">{invoice.invoiceNumber}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Invoice Date:</span>
                   <span className="font-medium">{new Date(invoice.dateIssued).toLocaleDateString()}</span>
                 </div>
@@ -506,11 +269,15 @@ ${companySettings?.companyName || ''}`;
                   <span className="text-gray-600">Due Date:</span>
                   <span className="font-medium">{new Date(invoice.dueDate).toLocaleDateString()}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Currency:</span>
+                  <span className="font-medium">{getCurrencySymbol(invoice.currency)}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Items - Desktop Table */}
+          {/* Items */}
           <div className="mb-6 sm:mb-8">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Items</h2>
             
@@ -636,84 +403,31 @@ ${companySettings?.companyName || ''}`;
               </p>
             </div>
           )}
-
-          {/* Invoice Footer */}
-          {companySettings?.invoiceFooter && (
-            <div className="mt-6 pt-6 border-t text-center">
-              <p className="text-sm text-gray-600 italic whitespace-pre-line">
-                {companySettings.invoiceFooter}
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3">
+        {/* Download Button */}
+        <div className="flex justify-center">
           <button
             onClick={generatePDF}
-            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
+            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
           >
             📄 Download PDF
           </button>
+        </div>
 
-          <button
-            onClick={shareOnWhatsApp}
-            className="bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>This invoice was created with</p>
+          <a 
+            href="https://billkazi.me" 
+            className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            💬 Share
-          </button>
-
-          {/* Payment Reminder - Only show for unpaid invoices */}
-          {invoice.status !== 'paid' && (
-            <button
-              onClick={sendPaymentReminder}
-              className="bg-orange-500 text-white px-4 py-3 rounded-lg hover:bg-orange-600 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
-            >
-              ⏰ Remind
-            </button>
-          )}
-
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 transition font-medium text-sm sm:text-base"
-            >
-              ⋮
-            </button>
-    
-            {showMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                <button
-                  onClick={() => {
-                    toggleStatus();
-                    setShowMenu(false);
-                  }}
-                  disabled={updatingStatus}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-                >
-                  {updatingStatus
-                    ? '...'
-                    : invoice.status === 'paid'
-                    ? '○ Mark Unpaid'
-                    : '✓ Mark Paid'}
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    handleDelete();
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  🗑️ Delete Invoice
-                </button>
-              </div>
-            )}
-          </div>
+            BillKazi - Invoicing for African Freelancers
+          </a>
         </div>
       </div>
     </div>
   );
 };
 
-export default InvoiceDetail;
+export default PublicInvoice;

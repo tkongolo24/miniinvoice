@@ -11,6 +11,7 @@ import Settings from './pages/Settings';
 import ErrorBoundary from './components/ErrorBoundary';
 import { LanguageProvider } from './contexts/LanguageContext';
 import CompanyProfile from './pages/CompanyProfile';
+import PublicInvoice from './pages/PublicInvoice';
 import VerifyEmail from './pages/VerifyEmail';
 import { inject } from '@vercel/analytics';
 import MagicSignin from './pages/MagicSignin';
@@ -36,6 +37,7 @@ function App() {
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/magic-signin" element={<MagicSignin />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/i/:shareToken" element={<PublicInvoice />} />
               <Route
                 path="/dashboard"
                 element={

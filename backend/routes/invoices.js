@@ -3,6 +3,57 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const Invoice = require('../models/invoice');
 const auth = require('../middleware/auth');
+const crypto = require('crypto');
+
+// Get public invoice by share token (no login required)
+router.get('/public/:shareToken', async (req, res) => {
+  try {
+    const invoice = await Invoice.findOne({
+      shareToken: req.params.shareToken
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    res.json(invoice);
+  } catch (error) {
+    console.error('Get public invoice error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Generate share token for an invoice
+router.post('/:id/share', auth, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      user: req.userId
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Generate token if it doesn't exist
+    if (!invoice.shareToken) {
+      invoice.shareToken = crypto.randomBytes(16).toString('hex');
+      await invoice.save();
+    }
+
+    res.json({ 
+      shareToken: invoice.shareToken,
+      shareUrl: `${process.env.FRONTEND_URL || 'https://billkazi.me'}/invoice/${invoice.shareToken}`
+    });
+  } catch (error) {
+    console.error('Generate share token error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Get all user's invoices
 router.get('/', auth, async (req, res) => {
@@ -136,13 +187,14 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Invoice number already exists' });
     }
 
-    // Create invoice
+    // Create invoice with share token
     const invoice = new Invoice({
       ...req.body,
       user: req.userId,
       invoiceNumber: invoiceNumber.trim(),
       clientName: clientName.trim(),
-      clientEmail: clientEmail.trim().toLowerCase()
+      clientEmail: clientEmail.trim().toLowerCase(),
+      shareToken: crypto.randomBytes(16).toString('hex')
     });
 
     await invoice.save();

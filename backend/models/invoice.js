@@ -120,6 +120,11 @@ const invoiceSchema = new mongoose.Schema({
   lastReminderSent: {
     type: Date,
     default: null
+  },
+  shareToken: {
+    type: String,
+    unique: true,
+    sparse: true
   }
 }, {
   timestamps: true
