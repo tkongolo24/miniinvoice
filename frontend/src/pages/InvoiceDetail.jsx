@@ -248,22 +248,33 @@ ${companySettings?.companyName || ''}`;
     doc.text(`Receipt #: ${receiptNumber}`, 20, 50);
     doc.text(`Date: ${paymentDate}`, 20, 58);
     doc.text(`For Invoice: ${invoice.invoiceNumber}`, 20, 66);
+    
+    // Add verification link if shareToken exists
+    if (invoice.shareToken) {
+      const verifyUrl = `https://billkazi.me/i/${invoice.shareToken}`;
+      doc.setFontSize(9);
+      doc.setTextColor(22, 163, 74);
+      doc.text('Verify online:', 20, 74);
+      doc.setTextColor(37, 99, 235);
+      doc.textWithLink(verifyUrl, 48, 74, { url: verifyUrl });
+      doc.setTextColor(0, 0, 0);
+    }
 
     // Received From Section
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Received From:', 20, 85);
+    doc.text('Received From:', 20, 90);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(invoice.clientName, 20, 94);
-    doc.text(invoice.clientEmail, 20, 102);
+    doc.text(invoice.clientName, 20, 99);
+    doc.text(invoice.clientEmail, 20, 107);
     if (invoice.clientAddress) {
       const addressLines = doc.splitTextToSize(invoice.clientAddress, 80);
-      doc.text(addressLines, 20, 110);
+      doc.text(addressLines, 20, 115);
     }
 
     // Payment Details Box
-    const boxY = 130;
+    const boxY = 135;
     doc.setFillColor(240, 253, 244);
     doc.setDrawColor(22, 163, 74);
     doc.setLineWidth(0.5);
