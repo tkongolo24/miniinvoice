@@ -56,7 +56,7 @@ const sendPasswordResetEmail = async (email, token) => {
 const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName) => {
   const { invoiceNumber, clientName, total, currency, dueDate, daysOverdue } = invoiceData;
   
-  const currencySymbols = { RWF: 'RWF', KES: 'KES', NGN: 'NGN' };
+  const currencySymbols = { RWF: 'RWF', KES: 'KES', NGN: 'NGN', CFA: 'CFA'};
   const symbol = currencySymbols[currency] || currency;
   
   const subject = daysOverdue > 0 

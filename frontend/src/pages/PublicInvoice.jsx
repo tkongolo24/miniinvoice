@@ -32,6 +32,7 @@ const PublicInvoice = () => {
       'RWF': 'RWF',
       'KES': 'KES',
       'NGN': 'NGN',
+      'CFA': 'CFA',
     };
     return symbols[currency] || 'RWF';
   };

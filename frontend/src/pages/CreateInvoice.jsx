@@ -7,12 +7,14 @@ const CURRENCIES = [
   { code: 'RWF', symbol: 'RWF', name: 'Rwandan Franc' },
   { code: 'KES', symbol: 'KSH', name: 'Kenyan Shilling' },
   { code: 'NGN', symbol: 'NGN', name: 'Nigerian Naira' },
+  { code: 'CFA', symbol: 'CFA', name: 'CFA Franc' },
 ];
 
 const DEFAULT_TAX_RATES = {
   RWF: 18,
   KES: 16,
   NGN: 7.5,
+  CFA: 18,
 };
 
 function CreateInvoice() {

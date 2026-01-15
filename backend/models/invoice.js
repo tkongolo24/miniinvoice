@@ -88,7 +88,7 @@ const invoiceSchema = new mongoose.Schema({
   },
   currency: {
     type: String,
-    enum: ['RWF', 'KES', 'NGN'],
+    enum: ['RWF', 'KES', 'NGN','CFA'],
     default: 'RWF'
   },
   status: {

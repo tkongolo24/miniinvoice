@@ -77,7 +77,7 @@ const Dashboard = () => {
       'RWF': 'RFW',
       'KES': 'KSH',
       'NGN': 'NGN',
-      'USD': 'USD',
+      'CFA': 'CFA',
     };
     return symbols[currency] || 'USD';
   };
