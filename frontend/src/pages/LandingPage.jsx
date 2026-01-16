@@ -91,7 +91,7 @@ const LandingPage = () => {
             <span className="text-blue-600">Get paid.</span>
           </h1>
           <p className="mt-6 text-lg text-gray-600 max-w-xl mx-auto">
-            Create professional invoices, share them on WhatsApp, and track payments. 
+            Create professional invoices, share them, and track payments. 
             Simple tools for freelancers and small businesses.
           </p>
           <div className="mt-10">
