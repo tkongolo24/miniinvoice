@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Invoice = require('../models/invoice');
 const auth = require('../middleware/auth');
 const crypto = require('crypto');
+const { sendInvoiceEmail } = require('../services/emailService');
 
 // Get public invoice by share token (no login required)
 router.get('/public/:shareToken', async (req, res) => {
@@ -283,4 +284,55 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// Send invoice via email
+router.post('/:id/send-email', auth, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      user: req.userId
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Get company settings
+    const settings = await Settings.findOne({ user: req.userId });
+
+    // Build share URL if token exists
+    const shareUrl = invoice.shareToken 
+      ? `https://billkazi.me/i/${invoice.shareToken}`
+      : null;
+
+    // Send email
+    const success = await sendInvoiceEmail(
+      invoice.clientEmail,
+      {
+        invoiceNumber: invoice.invoiceNumber,
+        clientName: invoice.clientName,
+        total: invoice.total,
+        currency: invoice.currency,
+        dueDate: invoice.dueDate,
+        items: invoice.items
+      },
+      settings,
+      shareUrl
+    );
+
+    if (!success) {
+      return res.status(500).json({ message: 'Failed to send email' });
+    }
+
+    res.json({ message: 'Invoice sent successfully' });
+  } catch (error) {
+    console.error('Send invoice email error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
+
