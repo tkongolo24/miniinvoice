@@ -113,9 +113,103 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName) =
   return sendEmail(clientEmail, subject, html);
 };
 
+const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl) => {
+  const { invoiceNumber, clientName, total, currency, dueDate, items } = invoiceData;
+  
+  const currencySymbols = { RWF: 'RWF', KES: 'KES', NGN: 'NGN', CFA: 'CFA' };
+  const symbol = currencySymbols[currency] || currency;
+  
+  const companyName = companyData?.companyName || 'BillKazi User';
+  const companyEmail = companyData?.contactEmail || '';
+  const companyPhone = companyData?.phone || '';
+  
+  // Build items table
+  const itemsHtml = items.map(item => `
+    <tr>
+      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.description}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">${symbol} ${item.unitPrice.toFixed(2)}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: right;">${symbol} ${(item.quantity * item.unitPrice).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #2563eb; padding: 20px; text-align: center;">
+        <h1 style="color: white; margin: 0;">Invoice</h1>
+      </div>
+      
+      <div style="padding: 30px; background-color: #f9fafb;">
+        <p>Hi ${clientName},</p>
+        
+        <p>Please find your invoice from <strong>${companyName}</strong> below.</p>
+        
+        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <div>
+              <p style="margin: 0; color: #6b7280; font-size: 12px;">INVOICE NUMBER</p>
+              <p style="margin: 5px 0 0 0; font-weight: bold; font-size: 18px;">#${invoiceNumber}</p>
+            </div>
+            <div style="text-align: right;">
+              <p style="margin: 0; color: #6b7280; font-size: 12px;">DUE DATE</p>
+              <p style="margin: 5px 0 0 0; font-weight: bold;">${new Date(dueDate).toLocaleDateString()}</p>
+            </div>
+          </div>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+              <tr style="background-color: #f3f4f6;">
+                <th style="padding: 10px; text-align: left; font-size: 12px; color: #6b7280;">DESCRIPTION</th>
+                <th style="padding: 10px; text-align: center; font-size: 12px; color: #6b7280;">QTY</th>
+                <th style="padding: 10px; text-align: right; font-size: 12px; color: #6b7280;">PRICE</th>
+                <th style="padding: 10px; text-align: right; font-size: 12px; color: #6b7280;">TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+          
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #2563eb;">
+            <table style="width: 100%;">
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; font-size: 18px;">Total Due:</td>
+                <td style="padding: 8px 0; font-weight: bold; text-align: right; color: #2563eb; font-size: 24px;">${symbol} ${total.toFixed(2)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        
+        ${shareUrl ? `
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${shareUrl}" style="background-color: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold;">View Invoice Online</a>
+        </div>
+        <p style="text-align: center; color: #6b7280; font-size: 12px;">Or copy this link: ${shareUrl}</p>
+        ` : ''}
+        
+        <p>If you have any questions about this invoice, please contact us:</p>
+        <p style="color: #6b7280;">
+          ${companyName}<br>
+          ${companyEmail ? `Email: ${companyEmail}<br>` : ''}
+          ${companyPhone ? `Phone: ${companyPhone}` : ''}
+        </p>
+        
+        <p style="margin-top: 30px;">Thank you for your business!</p>
+        
+        <p style="color: #6b7280; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+          This invoice was sent via BillKazi.
+        </p>
+      </div>
+    </div>
+  `;
+  
+  return sendEmail(clientEmail, `Invoice #${invoiceNumber} from ${companyName}`, html);
+};
+
 module.exports = {
   sendVerificationEmail,
   sendMagicLinkEmail,
   sendPasswordResetEmail,
   sendPaymentReminderEmail,
+  sendInvoiceEmail,
 };
