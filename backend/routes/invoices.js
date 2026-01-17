@@ -305,10 +305,19 @@ router.post('/:id/send-email', auth, async (req, res) => {
     }
     console.log('✅ Invoice found:', invoice.invoiceNumber);
 
-    console.log('🔍 Step 2: Finding settings for user:', req.userId);
-    const settings = await Settings.findOne({ user: req.userId });
-    console.log('🔍 Settings result:', settings);
-    console.log('🔍 Company name:', settings?.companyName);
+    console.log('🔍 Step 2: Finding user settings...');
+    const User = require('../models/user');
+    const user = await User.findById(req.userId).select('-password');
+    console.log('🔍 User result:', user);
+    console.log('🔍 Company name:', user?.companyName);
+
+    // Build settings object from user data
+    const settings = user ? {
+      companyName: user.companyName,
+      contactEmail: user.contactEmail,
+      phone: user.phone,
+      address: user.address
+    } : null;
 
     console.log('🔍 Step 3: Building share URL...');
     const shareUrl = invoice.shareToken 
