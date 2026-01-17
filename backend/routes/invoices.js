@@ -303,6 +303,11 @@ router.post('/:id/send-email', auth, async (req, res) => {
 
     // Get company settings
     const settings = await Settings.findOne({ user: req.userId });
+    
+    // DEBUG: Log what we found
+    console.log('🔍 DEBUG - User ID:', req.userId);
+    console.log('🔍 DEBUG - Settings found:', settings);
+    console.log('🔍 DEBUG - Company name:', settings?.companyName);
 
     // Build share URL if token exists
     const shareUrl = invoice.shareToken 
@@ -339,4 +344,3 @@ router.post('/:id/send-email', auth, async (req, res) => {
 });
 
 module.exports = router;
-
