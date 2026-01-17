@@ -858,7 +858,7 @@ ${companySettings?.companyName || ''}`;
           <div className="flex gap-2">
             <button
               onClick={generatePDF}
-              className="flex-1 bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition font-medium text-sm"
+              className="flex-1 bg-blue-900 text-white px-4 py-2.5 rounded-lg hover:bg-blue-800 transition font-medium text-sm"
             >
               Download PDF
             </button>
