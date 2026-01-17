@@ -288,10 +288,13 @@ router.delete('/:id', auth, async (req, res) => {
 // Send invoice via email
 router.post('/:id/send-email', auth, async (req, res) => {
   try {
+    console.log('📧 Starting email send process...');
+    
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid invoice ID format' });
     }
 
+    console.log('🔍 Step 1: Finding invoice...');
     const invoice = await Invoice.findOne({
       _id: req.params.id,
       user: req.userId
@@ -300,45 +303,51 @@ router.post('/:id/send-email', auth, async (req, res) => {
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
+    console.log('✅ Invoice found:', invoice.invoiceNumber);
 
-    // Get company settings
+    console.log('🔍 Step 2: Finding settings for user:', req.userId);
     const settings = await Settings.findOne({ user: req.userId });
-    
-    // DEBUG: Log what we found
-    console.log('🔍 DEBUG - User ID:', req.userId);
-    console.log('🔍 DEBUG - Settings found:', settings);
-    console.log('🔍 DEBUG - Company name:', settings?.companyName);
+    console.log('🔍 Settings result:', settings);
+    console.log('🔍 Company name:', settings?.companyName);
 
-    // Build share URL if token exists
+    console.log('🔍 Step 3: Building share URL...');
     const shareUrl = invoice.shareToken 
       ? `https://billkazi.me/i/${invoice.shareToken}`
       : null;
+    console.log('🔍 Share URL:', shareUrl);
 
-    // Send email
+    console.log('🔍 Step 4: Preparing email data...');
+    const emailData = {
+      invoiceNumber: invoice.invoiceNumber,
+      clientName: invoice.clientName,
+      total: invoice.total,
+      subtotal: invoice.subtotal,
+      tax: invoice.tax,
+      discount: invoice.discount,
+      currency: invoice.currency,
+      dueDate: invoice.dueDate,
+      items: invoice.items
+    };
+    console.log('🔍 Email data prepared');
+
+    console.log('🔍 Step 5: Sending email...');
     const success = await sendInvoiceEmail(
       invoice.clientEmail,
-      {
-        invoiceNumber: invoice.invoiceNumber,
-        clientName: invoice.clientName,
-        total: invoice.total,
-        subtotal: invoice.subtotal,
-        tax: invoice.tax,
-        discount: invoice.discount,
-        currency: invoice.currency,
-        dueDate: invoice.dueDate,
-        items: invoice.items
-      },
+      emailData,
       settings,
       shareUrl
     );
 
     if (!success) {
+      console.log('❌ Email sending failed');
       return res.status(500).json({ message: 'Failed to send email' });
     }
 
+    console.log('✅ Email sent successfully!');
     res.json({ message: 'Invoice sent successfully' });
   } catch (error) {
-    console.error('Send invoice email error:', error);
+    console.error('❌ Send invoice email error:', error);
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({ message: 'Server error' });
   }
 });
