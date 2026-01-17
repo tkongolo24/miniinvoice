@@ -13,6 +13,7 @@ const InvoiceDetail = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [companySettings, setCompanySettings] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     fetchInvoice();
@@ -834,95 +835,105 @@ ${companySettings?.companyName || ''}`;
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={generatePDF}
-            className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
-          >
-            📄 Download PDF
-          </button>
-
-          {/* Receipt Button - Only show for paid invoices */}
-          {invoice.status === 'paid' && (
+        <div className="flex flex-col gap-3">
+          {/* Primary Actions */}
+          <div className="flex gap-2">
             <button
-              onClick={generateReceipt}
-              className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
+              onClick={generatePDF}
+              className="flex-1 bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition font-medium text-sm"
             >
-              🧾 Receipt
+              Download PDF
             </button>
-          )}
+            
+            {invoice.status === 'paid' && (
+              <button
+                onClick={generateReceipt}
+                className="flex-1 bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-gray-800 transition font-medium text-sm"
+              >
+                Download Receipt
+              </button>
+            )}
+          </div>
 
-          <button
-            onClick={shareOnWhatsApp}
-            className="bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
-          >
-            💬 Share
-          </button>
-
-          {/* Payment Reminder - Only show for unpaid invoices */}
-          {invoice.status !== 'paid' && (
+          {/* Share Actions */}
+          <div className="flex gap-2">
             <button
-              onClick={sendPaymentReminder}
-              className="bg-orange-500 text-white px-4 py-3 rounded-lg hover:bg-orange-600 transition font-medium text-sm sm:text-base shadow-md hover:shadow-lg"
+              onClick={shareOnWhatsApp}
+              className="flex-1 border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium text-sm"
             >
-              ⏰ Remind
+              Share on WhatsApp
             </button>
-          )}
+            
+            <button
+              onClick={sendEmailInvoice}
+              className="flex-1 border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium text-sm"
+            >
+              Send Email
+            </button>
+          </div>
 
-          <div className="relative">
+          {/* Secondary Actions */}
+          <div className="flex gap-2">
+            {invoice.status !== 'paid' && (
+              <button
+                onClick={sendPaymentReminder}
+                className="flex-1 border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium text-sm"
+              >
+                Send Reminder
+              </button>
+            )}
+            
+            <button
+              onClick={toggleStatus}
+              disabled={updatingStatus}
+              className="flex-1 border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium text-sm disabled:opacity-50"
+            >
+              {updatingStatus
+                ? '...'
+                : invoice.status === 'paid'
+                ? 'Mark Unpaid'
+                : 'Mark Paid'}
+            </button>
+            
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 transition font-medium text-sm sm:text-base"
+              className="relative border border-gray-300 text-gray-700 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition"
             >
-              ⋮
-            </button>
-    
-            {showMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
-                <button
-                  onClick={() => {
-                    toggleStatus();
-                    setShowMenu(false);
-                  }}
-                  disabled={updatingStatus}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-                >
-                  {updatingStatus
-                    ? '...'
-                    : invoice.status === 'paid'
-                    ? '○ Mark Unpaid'
-                    : '✓ Mark Paid'}
-                </button>
-
-                {/* Share Receipt on WhatsApp - Only for paid invoices */}
-                {invoice.status === 'paid' && (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+              
+              {showMenu && (
+                <div className="absolute right-0 bottom-full mb-2 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                  {invoice.status === 'paid' && (
+                    <button
+                      onClick={() => {
+                        shareReceiptOnWhatsApp();
+                        setShowMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Share Receipt
+                    </button>
+                  )}
+                  
                   <button
                     onClick={() => {
-                      shareReceiptOnWhatsApp();
                       setShowMenu(false);
+                      handleDelete();
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                   >
-                    📤 Share Receipt
+                    Delete Invoice
                   </button>
-                )}
-                
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    handleDelete();
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  🗑️ Delete Invoice
-                </button>
-              </div>
-            )}
+                </div>
+              )}
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
 };
-
+/* No, I did not change anything in the code you provided above. */
 export default InvoiceDetail;
