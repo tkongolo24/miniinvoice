@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Invoice = require('../models/invoice');
+const Settings = require('../models/settings');
 const auth = require('../middleware/auth');
 const crypto = require('crypto');
 const { sendInvoiceEmail } = require('../services/emailService');
