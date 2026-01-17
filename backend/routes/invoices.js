@@ -316,6 +316,9 @@ router.post('/:id/send-email', auth, async (req, res) => {
         invoiceNumber: invoice.invoiceNumber,
         clientName: invoice.clientName,
         total: invoice.total,
+        subtotal: invoice.subtotal,
+        tax: invoice.tax,
+        discount: invoice.discount,
         currency: invoice.currency,
         dueDate: invoice.dueDate,
         items: invoice.items
