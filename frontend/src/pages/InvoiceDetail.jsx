@@ -858,7 +858,7 @@ ${companySettings?.companyName || ''}`;
           <div className="flex gap-2">
             <button
               onClick={generatePDF}
-              className="flex-1 bg-blue-900 text-white px-4 py-2.5 rounded-lg hover:bg-blue-800 transition font-medium text-sm"
+              className="flex-1 bg-blue-700 text-white px-4 py-2.5 rounded-lg hover:bg-blue-600 transition font-medium text-sm"
             >
               Download PDF
             </button>
@@ -885,7 +885,7 @@ ${companySettings?.companyName || ''}`;
             <button
               onClick={sendEmailInvoice}
               disabled={sendingEmail}
-              className="flex-1 border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium text-sm"
+              className="flex-1 border border-blue-300 text-blue-700 px-4 py-2.5 rounded-lg hover:bg-blue-50 transition font-medium text-sm"
             >
               {sendingEmail ? 'Sending...' : 'Send Email'}
             </button>
@@ -916,21 +916,21 @@ ${companySettings?.companyName || ''}`;
             
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="relative border border-gray-300 text-gray-700 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition"
+              className="relative border border-blue-300 text-gray-700 px-3 py-2.5 rounded-lg hover:bg-blue-50 transition"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
               </svg>
               
               {showMenu && (
-                <div className="absolute right-0 bottom-full mb-2 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                <div className="absolute right-0 bottom-full mb-2 w-44 bg-white rounded-lg shadow-lg border border-blue-200 py-1 z-10">
                   {invoice.status === 'paid' && (
                     <button
                       onClick={() => {
                         shareReceiptOnWhatsApp();
                         setShowMenu(false);
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50"
                     >
                       Share Receipt
                     </button>
@@ -954,5 +954,4 @@ ${companySettings?.companyName || ''}`;
     </div>
   );
 };
-/* No, I did not change anything in the code you provided above. */
 export default InvoiceDetail;
