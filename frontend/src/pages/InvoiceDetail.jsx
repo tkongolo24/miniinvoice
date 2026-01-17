@@ -89,6 +89,24 @@ const InvoiceDetail = () => {
     }
   };
 
+  const sendEmailInvoice = async () => {
+  setSendingEmail(true);
+  try {
+    const token = localStorage.getItem('token');
+    await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/invoices/${id}/send-email`,
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    alert('Invoice sent to ' + invoice.clientEmail);
+  } catch (err) {
+    alert('Failed to send email');
+  } finally {
+    setSendingEmail(false);
+  }
+};
   const shareOnWhatsApp = () => {
     const currency = getCurrencySymbol(invoice.currency);
     const shareUrl = invoice.shareToken 
@@ -866,9 +884,10 @@ ${companySettings?.companyName || ''}`;
             
             <button
               onClick={sendEmailInvoice}
+              disabled={sendingEmail}
               className="flex-1 border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium text-sm"
             >
-              Send Email
+              {sendingEmail ? 'Sending...' : 'Send Email'}
             </button>
           </div>
 
