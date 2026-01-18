@@ -114,7 +114,7 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName) =
 };
 
 const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl) => {
-  const { invoiceNumber, clientName, total, currency, dueDate, items, subtotal, tax, discount } = invoiceData;
+  const { invoiceNumber, clientName, total, currency, dueDate, items, subtotal, tax, discount, taxRate } = invoiceData;
   
   const currencySymbols = { RWF: 'RWF', KES: 'KES', NGN: 'NGN', CFA: 'CFA' };
   const symbol = currencySymbols[currency] || currency;
@@ -126,13 +126,27 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
   const companyCity = companyData?.city || '';
   const companyCountry = companyData?.country || '';
   
+  // Format amounts properly (no extra decimals)
+  const formatAmount = (amount) => {
+    return amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  // Calculate tax-inclusive breakdown (matching PDF)
+  const netAmount = total / (1 + (taxRate || 18) / 100);
+  const calculatedTax = total - netAmount;
+  
   // Build items table
   const itemsHtml = items.map(item => `
     <tr>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; color: #374151;">${item.description}</td>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #6b7280;">${item.quantity}</td>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #6b7280;">${symbol} ${item.unitPrice.toLocaleString()}</td>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; color: #111827;">${symbol} ${(item.quantity * item.unitPrice).toLocaleString()}</td>
+      <td style="padding: 16px; border-bottom: 1px solid #e5e7eb;">
+        <p style="margin: 0; color: #111827; font-size: 15px; font-weight: 500; line-height: 1.4;">${item.description}</p>
+      </td>
+      <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 15px;">${item.quantity}</td>
+      <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #6b7280; font-size: 15px;">${symbol} ${formatAmount(item.unitPrice)}</td>
+      <td style="padding: 16px; border-bottom: 1px solid #e5e7eb; text-align: right; color: #111827; font-size: 15px; font-weight: 600;">${symbol} ${formatAmount(item.quantity * item.unitPrice)}</td>
     </tr>
   `).join('');
 
@@ -142,27 +156,66 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        @media only screen and (max-width: 600px) {
+          .container {
+            width: 100% !important;
+            border-radius: 0 !important;
+          }
+          .padding-32 {
+            padding: 20px !important;
+          }
+          .header-title {
+            font-size: 24px !important;
+          }
+          .amount-bubble {
+            padding: 10px 16px !important;
+            margin-top: 16px !important;
+            display: block !important;
+          }
+          .amount-bubble-text {
+            font-size: 20px !important;
+          }
+          .info-table {
+            display: block !important;
+          }
+          .info-table tr {
+            display: block !important;
+          }
+          .info-table td {
+            display: block !important;
+            width: 100% !important;
+            text-align: left !important;
+            padding-bottom: 20px !important;
+          }
+          .items-table th,
+          .items-table td {
+            padding: 10px 8px !important;
+            font-size: 13px !important;
+          }
+        }
+      </style>
     </head>
-    <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 40px 20px;">
+    <body style="margin: 0; padding: 0; background-color: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 32px 16px;">
         <tr>
           <td align="center">
             <!-- Main Container -->
-            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <table class="container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); max-width: 100%;">
               
               <!-- Header -->
               <tr>
-                <td style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 40px 40px 30px 40px;">
-                  <table width="100%" cellpadding="0" cellspacing="0">
+                <td style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 32px;" class="padding-32">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="info-table">
                     <tr>
-                      <td>
-                        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">INVOICE</h1>
-                        <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">#${invoiceNumber}</p>
+                      <td style="vertical-align: middle;">
+                        <h1 class="header-title" style="margin: 0; color: #ffffff; font-size: 26px; font-weight: 700; letter-spacing: -0.5px;">INVOICE</h1>
+                        <p style="margin: 6px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 15px;">#${invoiceNumber}</p>
                       </td>
-                      <td align="right">
-                        <div style="background-color: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2);">
-                          <p style="margin: 0; color: rgba(255, 255, 255, 0.8); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Amount Due</p>
-                          <p style="margin: 4px 0 0 0; color: #ffffff; font-size: 24px; font-weight: 700;">${symbol} ${total.toLocaleString()}</p>
+                      <td align="right" style="vertical-align: middle;">
+                        <div class="amount-bubble" style="background-color: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); padding: 12px 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); display: inline-block;">
+                          <p style="margin: 0; color: rgba(255, 255, 255, 0.85); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Total Due</p>
+                          <p class="amount-bubble-text" style="margin: 4px 0 0 0; color: #ffffff; font-size: 22px; font-weight: 700; white-space: nowrap;">${symbol} ${formatAmount(total)}</p>
                         </div>
                       </td>
                     </tr>
@@ -172,77 +225,100 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
 
               <!-- Company & Client Info -->
               <tr>
-                <td style="padding: 40px 40px 30px 40px;">
-                  <table width="100%" cellpadding="0" cellspacing="0">
+                <td style="padding: 32px;" class="padding-32">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="info-table">
                     <tr>
-                      <td style="vertical-align: top; width: 50%;">
-                        <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">From</p>
-                        <p style="margin: 0; color: #111827; font-size: 16px; font-weight: 700;">${companyName}</p>
-                        ${companyEmail ? `<p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">${companyEmail}</p>` : ''}
-                        ${companyPhone ? `<p style="margin: 2px 0 0 0; color: #6b7280; font-size: 14px;">${companyPhone}</p>` : ''}
-                        ${companyAddress ? `<p style="margin: 8px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.5;">${companyAddress}${companyCity ? `<br>${companyCity}` : ''}${companyCountry ? `<br>${companyCountry}` : ''}</p>` : ''}
+                      <td style="vertical-align: top; width: 48%; padding-right: 16px;">
+                        <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">From</p>
+                        <p style="margin: 0; color: #111827; font-size: 16px; font-weight: 700; line-height: 1.4;">${companyName}</p>
+                        ${companyEmail ? `<p style="margin: 6px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.5;">${companyEmail}</p>` : ''}
+                        ${companyPhone ? `<p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.5;">${companyPhone}</p>` : ''}
+                        ${companyAddress ? `<p style="margin: 6px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.5;">${companyAddress}${companyCity ? `<br>${companyCity}` : ''}${companyCountry ? `<br>${companyCountry}` : ''}</p>` : ''}
                       </td>
-                      <td style="vertical-align: top; width: 50%; text-align: right;">
-                        <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Bill To</p>
-                        <p style="margin: 0; color: #111827; font-size: 16px; font-weight: 700;">${clientName}</p>
-                        <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;">${clientEmail}</p>
-                        <div style="margin-top: 16px; padding: 12px; background-color: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px;">
-                          <p style="margin: 0; color: #92400e; font-size: 12px; font-weight: 600;">Due Date</p>
-                          <p style="margin: 4px 0 0 0; color: #78350f; font-size: 14px; font-weight: 700;">${new Date(dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        </div>
+                      <td style="vertical-align: top; width: 48%; padding-left: 16px;">
+                        <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Bill To</p>
+                        <p style="margin: 0; color: #111827; font-size: 16px; font-weight: 700; line-height: 1.4;">${clientName}</p>
+                        ${clientEmail ? `<p style="margin: 6px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.5;">${clientEmail}</p>` : ''}
                       </td>
                     </tr>
                   </table>
                 </td>
               </tr>
 
+              <!-- Due Date -->
+              ${dueDate ? `
+              <tr>
+                <td style="padding: 0 32px 24px 32px;" class="padding-32">
+                  <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px;">
+                    <p style="margin: 0; color: #92400e; font-size: 13px; font-weight: 600;">
+                      <span style="text-transform: uppercase; letter-spacing: 0.3px; font-size: 11px;">Due Date:</span> 
+                      <span style="margin-left: 8px; font-size: 14px;">${new Date(dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    </p>
+                  </div>
+                </td>
+              </tr>
+              ` : ''}
+
               <!-- Items Table -->
               <tr>
-                <td style="padding: 0 40px 40px 40px;">
-                  <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                <td style="padding: 0 32px 24px 32px;" class="padding-32">
+                  <table width="100%" cellpadding="0" cellspacing="0" class="items-table">
                     <thead>
-                      <tr style="background-color: #f9fafb;">
-                        <th style="padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Description</th>
-                        <th style="padding: 14px 16px; text-align: center; font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Qty</th>
-                        <th style="padding: 14px 16px; text-align: right; font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Rate</th>
-                        <th style="padding: 14px 16px; text-align: right; font-size: 12px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e5e7eb;">Amount</th>
+                      <tr>
+                        <th style="padding: 12px 16px; border-bottom: 2px solid #e5e7eb; text-align: left; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Description</th>
+                        <th style="padding: 12px 16px; border-bottom: 2px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Qty</th>
+                        <th style="padding: 12px 16px; border-bottom: 2px solid #e5e7eb; text-align: right; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Rate</th>
+                        <th style="padding: 12px 16px; border-bottom: 2px solid #e5e7eb; text-align: right; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Amount</th>
                       </tr>
                     </thead>
                     <tbody>
                       ${itemsHtml}
                     </tbody>
                   </table>
+                </td>
+              </tr>
 
-                  <!-- Totals -->
-                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px;">
+              <!-- Totals Section (Tax-Inclusive like PDF) -->
+              <tr>
+                <td style="padding: 0 32px 32px 32px;" class="padding-32">
+                  <table width="100%" cellpadding="0" cellspacing="0">
                     <tr>
-                      <td width="60%"></td>
-                      <td width="40%">
-                        <table width="100%" cellpadding="0" cellspacing="0">
-                          ${subtotal ? `
+                      <td style="padding: 0; width: 55%;"></td>
+                      <td style="padding: 0; width: 45%;">
+                        <!-- Items Total -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
                           <tr>
-                            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Subtotal</td>
-                            <td style="padding: 8px 0; text-align: right; color: #374151; font-size: 14px; font-weight: 600;">${symbol} ${subtotal.toLocaleString()}</td>
+                            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Items Total (incl. VAT)</td>
+                            <td style="padding: 8px 0; text-align: right; color: #111827; font-size: 14px; font-weight: 600;">${symbol} ${formatAmount(subtotal)}</td>
                           </tr>
-                          ` : ''}
-                          ${discount > 0 ? `
+                        </table>
+
+                        ${discount > 0 ? `
+                        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
                           <tr>
-                            <td style="padding: 8px 0; color: #059669; font-size: 14px;">Discount</td>
-                            <td style="padding: 8px 0; text-align: right; color: #059669; font-size: 14px; font-weight: 600;">- ${symbol} ${discount.toLocaleString()}</td>
+                            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Subtotal after discount</td>
+                            <td style="padding: 8px 0; text-align: right; color: #111827; font-size: 14px; font-weight: 600;">${symbol} ${formatAmount(total)}</td>
                           </tr>
-                          ` : ''}
-                          ${tax > 0 ? `
+                        </table>
+                        ` : ''}
+
+                        <!-- Tax Breakdown -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 12px;">
                           <tr>
-                            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Tax</td>
-                            <td style="padding: 8px 0; text-align: right; color: #374151; font-size: 14px; font-weight: 600;">${symbol} ${tax.toLocaleString()}</td>
+                            <td style="padding: 6px 0; color: #6b7280; font-size: 13px;">Net Amount (excl. VAT)</td>
+                            <td style="padding: 6px 0; text-align: right; color: #6b7280; font-size: 13px;">${symbol} ${formatAmount(netAmount)}</td>
                           </tr>
-                          ` : ''}
                           <tr>
-                            <td colspan="2" style="padding-top: 12px; border-top: 2px solid #2563eb;"></td>
+                            <td style="padding: 6px 0; color: #6b7280; font-size: 13px;">VAT (${taxRate || 18}%)</td>
+                            <td style="padding: 6px 0; text-align: right; color: #6b7280; font-size: 13px;">${symbol} ${formatAmount(calculatedTax)}</td>
                           </tr>
+                        </table>
+
+                        <!-- Total Payable -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border-radius: 8px; margin-top: 16px; padding: 16px;">
                           <tr>
-                            <td style="padding: 12px 0 0 0; color: #111827; font-size: 16px; font-weight: 700;">Total Due</td>
-                            <td style="padding: 12px 0 0 0; text-align: right; color: #2563eb; font-size: 24px; font-weight: 700;">${symbol} ${total.toLocaleString()}</td>
+                            <td style="color: rgba(255, 255, 255, 0.9); font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Payable</td>
+                            <td style="text-align: right; color: #ffffff; font-size: 20px; font-weight: 700;">${symbol} ${formatAmount(total)}</td>
                           </tr>
                         </table>
                       </td>
@@ -254,7 +330,7 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
               ${shareUrl ? `
               <!-- View Online Button -->
               <tr>
-                <td style="padding: 0 40px 40px 40px; text-align: center;">
+                <td style="padding: 0 32px 32px 32px; text-align: center;" class="padding-32">
                   <a href="${shareUrl}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">View Invoice Online</a>
                   <p style="margin: 12px 0 0 0; color: #9ca3af; font-size: 12px;">Or copy this link: <a href="${shareUrl}" style="color: #2563eb; text-decoration: none;">${shareUrl}</a></p>
                 </td>
@@ -263,17 +339,13 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
 
               <!-- Footer -->
               <tr>
-                <td style="background-color: #f9fafb; padding: 30px 40px; border-top: 1px solid #e5e7eb;">
-                  <p style="margin: 0 0 8px 0; color: #374151; font-size: 14px; font-weight: 600;">Questions about this invoice?</p>
-                  <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                    Contact ${companyName} at ${companyEmail || 'the email address on file'}${companyPhone ? ` or ${companyPhone}` : ''}.
-                  </p>
-                  <p style="margin: 20px 0 0 0; color: #9ca3af; font-size: 12px; text-align: center;">
-                    This invoice was generated and sent via <strong style="color: #2563eb;">BillKazi</strong>
+                <td style="background-color: #f9fafb; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e7eb;" class="padding-32">
+                  <p style="margin: 0; color: #6b7280; font-size: 13px;">Thank you for your business!</p>
+                  <p style="margin: 8px 0 0 0; color: #9ca3af; font-size: 12px;">
+                    Powered by <span style="color: #2563eb; font-weight: 600;">BillKazi</span>
                   </p>
                 </td>
               </tr>
-
             </table>
           </td>
         </tr>
