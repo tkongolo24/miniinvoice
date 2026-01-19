@@ -3,12 +3,27 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ProfileCompleteModal from '../components/ProfileCompleteModal';
 
+// QUICK WIN #4: Date formatter utility
+const formatDate = (date) => {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
 const Dashboard = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [showProfileModal, setShowProfileModal] = useState(false);
+  // QUICK WIN #3: Delete confirmation modal state
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    show: false,
+    invoice: null
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -58,17 +73,29 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this invoice?')) return;
+  // QUICK WIN #3: Show delete confirmation modal
+  const handleDeleteClick = (invoice) => {
+    setDeleteConfirm({
+      show: true,
+      invoice: invoice
+    });
+  };
 
+  // QUICK WIN #3: Actual delete function
+  const confirmDelete = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/invoices/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setInvoices(invoices.filter((inv) => inv._id !== id));
+      await axios.delete(
+        `${import.meta.env.VITE_API_URL}/api/invoices/${deleteConfirm.invoice._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setInvoices(invoices.filter((inv) => inv._id !== deleteConfirm.invoice._id));
+      setDeleteConfirm({ show: false, invoice: null });
     } catch (err) {
-      alert('Failed to delete invoice');
+      alert('Failed to delete invoice. Please try again.');
+      setDeleteConfirm({ show: false, invoice: null });
     }
   };
 
@@ -110,6 +137,56 @@ const Dashboard = () => {
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
       />
+
+      {/* QUICK WIN #3: Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-6 h-6 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+                Confirm Deletion
+              </h3>
+              <p className="text-gray-600 text-center text-sm">
+                Are you sure you want to delete invoice{' '}
+                <strong className="text-gray-900">#{deleteConfirm.invoice?.invoiceNumber}</strong>?
+              </p>
+              <p className="text-red-600 text-center text-sm mt-2 font-medium">
+                This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm({ show: false, invoice: null })}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Delete Invoice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
@@ -231,7 +308,7 @@ const Dashboard = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">{invoice.clientName}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">
-                        {new Date(invoice.dateIssued).toLocaleDateString()}
+                        {formatDate(invoice.dateIssued)}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
                         {getCurrencySymbol(invoice.currency)} {invoice.total?.toFixed(2)}
@@ -256,7 +333,7 @@ const Dashboard = () => {
                             View
                           </Link>
                           <button
-                            onClick={() => handleDelete(invoice._id)}
+                            onClick={() => handleDeleteClick(invoice)}
                             className="text-red-600 hover:text-red-800 text-sm font-medium"
                           >
                             Delete
@@ -296,7 +373,7 @@ const Dashboard = () => {
                   </div>
                   <div className="flex justify-between items-center mb-3">
                     <p className="text-sm text-gray-600">
-                      {new Date(invoice.dateIssued).toLocaleDateString()}
+                      {formatDate(invoice.dateIssued)}
                     </p>
                     <p className="font-semibold text-gray-900">
                       {getCurrencySymbol(invoice.currency)} {invoice.total?.toFixed(2)}
@@ -310,8 +387,8 @@ const Dashboard = () => {
                       View
                     </Link>
                     <button
-                      onClick={() => handleDelete(invoice._id)}
-                      className="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded text-sm font-medium"
+                      onClick={() => handleDeleteClick(invoice)}
+                      className="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded text-sm font-medium hover:bg-red-200 transition-colors"
                     >
                       Delete
                     </button>

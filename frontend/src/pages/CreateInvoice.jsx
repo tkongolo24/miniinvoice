@@ -162,11 +162,12 @@ function CreateInvoice() {
       newErrors.dueDate = 'Due date must be after issue date';
     }
 
+    // QUICK WIN #2: Enhanced validation for items
     const invalidItems = formData.items.some(
-      (item) => !item.description.trim() || item.quantity < 1 || item.unitPrice <= 0
+      (item) => !item.description.trim() || !item.quantity || parseFloat(item.quantity) <= 0 || !item.unitPrice || parseFloat(item.unitPrice) <= 0
     );
     if (invalidItems) {
-      newErrors.items = 'All items must have description, valid quantity, and price';
+      newErrors.items = 'All items must have a description, quantity greater than 0, and price greater than 0';
     }
 
     setErrors(newErrors);
@@ -177,6 +178,8 @@ function CreateInvoice() {
     e.preventDefault();
 
     if (!validateForm()) {
+      // Scroll to top to show errors
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -409,11 +412,13 @@ function CreateInvoice() {
               </div>
             </div>
 
-            {/* Items */}
+            {/* Items - QUICK WIN #1: Button moved to bottom */}
             <div className="border-t border-gray-200 pt-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Invoice Items</h2>
               {errors.items && (
-                <p className="mb-4 text-sm text-red-600">{errors.items}</p>
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {errors.items}
+                </div>
               )}
               <div className="space-y-4">
                 {formData.items.map((item, index) => (
@@ -429,7 +434,9 @@ function CreateInvoice() {
                           onChange={(e) =>
                             handleItemChange(index, 'description', e.target.value)
                           }
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            !item.description.trim() ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                          }`}
                           placeholder="Item description"
                           required
                         />
@@ -448,7 +455,9 @@ function CreateInvoice() {
                             handleItemChange(index, 'quantity', e.target.value)
                           }
                           placeholder="0"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            !item.quantity || parseFloat(item.quantity) <= 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                          }`}
                           required
                         />
                       </div>
@@ -465,7 +474,9 @@ function CreateInvoice() {
                             handleItemChange(index, 'unitPrice', e.target.value)
                           }
                           placeholder="0.00"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                            !item.unitPrice || parseFloat(item.unitPrice) <= 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                          }`}
                           required
                         />
                       </div>
@@ -484,22 +495,23 @@ function CreateInvoice() {
 
                     <div className="mt-2 text-sm text-gray-600">
                       Total: {getCurrencySymbol()}{' '}
-                      {(item.quantity * item.unitPrice).toLocaleString('en-US', {
+                      {((parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0)).toLocaleString('en-US', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </div>
                   </div>
                 ))}
-              </div>
 
-              <button
-                type="button"
-                onClick={addItem}
-                className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                + Add Item
-              </button>
+                {/* QUICK WIN #1: Add Item button moved to BOTTOM */}
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  + Add Item
+                </button>
+              </div>
             </div>
 
             {/* Discount Section */}
