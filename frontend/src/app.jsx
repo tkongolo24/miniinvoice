@@ -17,7 +17,7 @@ import { inject } from '@vercel/analytics';
 import MagicSignin from './pages/MagicSignin';
 import ResetPassword from './pages/ResetPassword';
 import LandingPage from './pages/LandingPage';
-import ClientAPITest from './pages/ClientAPITest';
+//import ClientAPITest from './pages/ClientAPITest';
 
 
 
@@ -43,7 +43,7 @@ function App() {
               <Route path="/magic-signin" element={<MagicSignin />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/i/:shareToken" element={<PublicInvoice />} />
-              <Route path="/test-clients" element={<ClientAPITest />} />
+              {/* <Route path="/test-clients" element={<ClientAPITest />} /> */}
 
               <Route
                 path="/dashboard"
