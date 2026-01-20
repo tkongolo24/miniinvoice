@@ -115,7 +115,7 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 // Payment Reminder Scheduler
-const Invoice = require('./models/Invoice');
+const Invoice = require('./models/invoice');
 const User = require('./models/user');
 const { sendPaymentReminderEmail } = require('./services/emailService');
 
