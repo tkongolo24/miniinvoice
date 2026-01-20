@@ -264,8 +264,11 @@ function CreateInvoice() {
 
     setLoading(true);
     try {
+      // Extract clientId since it's not part of the Invoice schema
+      const { clientId, ...invoiceFields } = formData;
+
       const invoiceData = {
-        ...formData,
+        ...invoiceFields,
         subtotal: calculateSubtotal(),
         discount: formData.hasDiscount ? parseFloat(formData.discount) || 0 : 0,
         netAmount: calculateNetAmount(),
@@ -274,8 +277,8 @@ function CreateInvoice() {
       };
 
       await axios.post(`${API_URL}/api/invoices`, invoiceData, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+        headers: { Authorization: `Bearer ${token}` },
+      });
       navigate('/dashboard');
     } catch (error) {
       console.error('Error creating invoice:', error);
