@@ -10,6 +10,7 @@ function Clients() {
   const [showModal, setShowModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, client: null });
+  const [submitting, setSubmitting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -101,7 +102,11 @@ function Clients() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (submitting) return; // Prevent double submission
+    
     try {
+      setSubmitting(true);
+      
       if (editingClient) {
         // Update existing client
         await axios.put(`${API_URL}/api/clients/${editingClient._id}`, formData, {
@@ -118,6 +123,8 @@ function Clients() {
       fetchClients();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to save client');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -433,15 +440,24 @@ function Clients() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {editingClient ? 'Update Client' : 'Add Client'}
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    editingClient ? 'Update Client' : 'Add Client'
+                  )}
                 </button>
               </div>
             </form>
