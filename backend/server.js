@@ -5,11 +5,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
-const clientRoutes = require('./routes/clientRoutes');
-const authRoutes = require('./routes/authRoutes');
-const invoiceRoutes = require('./routes/invoiceRoutes');
-
-
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
@@ -29,10 +24,6 @@ app.set('trust proxy', 1);
 // Security Middleware
 app.use(helmet());
 app.use(mongoSanitize());
-app.use('/api/clients', clientRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/invoices', invoiceRoutes);
-
 
 // CORS Configuration
 const allowedOrigins = [
@@ -56,7 +47,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Body Parser
+// Body Parser (MUST come before routes!)
 app.use(express.json());
 
 // Serve uploaded files (logos)
@@ -78,16 +69,19 @@ const authLimiter = rateLimit({
   message: 'Too many login attempts, please try again later.'
 });
 
-// Routes
+// Import Routes (ONLY ONCE!)
 const authRoutes = require('./routes/auth');
 const invoiceRoutes = require('./routes/invoices');
 const settingsRoutes = require('./routes/settings');
+const clientRoutes = require('./routes/clientRoutes');
 
+// Register Routes (AFTER body parser!)
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/clients', clientRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
