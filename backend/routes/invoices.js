@@ -34,7 +34,7 @@ router.post('/:id/share', auth, async (req, res) => {
 
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-      user: req.userId
+      userId: req.userId
     });
 
     if (!invoice) {
@@ -60,7 +60,7 @@ router.post('/:id/share', auth, async (req, res) => {
 // Get all user's invoices
 router.get('/', auth, async (req, res) => {
   try {
-    const invoices = await Invoice.find({ user: req.userId })
+    const invoices = await Invoice.find({ userId: req.userId })
       .sort({ dateIssued: -1 });
     res.json(invoices);
   } catch (error) {
@@ -79,7 +79,7 @@ router.get('/:id', auth, async (req, res) => {
 
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-      user: req.userId
+      userId: req.userId
     });
 
     if (!invoice) {
@@ -111,7 +111,7 @@ router.patch('/:id/status', auth, async (req, res) => {
     // Find invoice
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-      user: req.userId
+      userId: req.userId
     });
     
     if (!invoice) {
@@ -182,7 +182,7 @@ router.post('/', auth, async (req, res) => {
     // Check for duplicate invoice number
     const existingInvoice = await Invoice.findOne({
       invoiceNumber: invoiceNumber.trim(),
-      user: req.userId
+      userId: req.userId
     });
 
     if (existingInvoice) {
@@ -192,7 +192,7 @@ router.post('/', auth, async (req, res) => {
     // Create invoice with share token
     const invoice = new Invoice({
       ...req.body,
-      user: req.userId,
+      userId: req.userId,
       invoiceNumber: invoiceNumber.trim(),
       clientName: clientName.trim(),
       clientEmail: clientEmail.trim().toLowerCase(),
@@ -224,7 +224,7 @@ router.put('/:id', auth, async (req, res) => {
 
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-      user: req.userId
+      userId: req.userId
     });
 
     if (!invoice) {
@@ -235,7 +235,7 @@ router.put('/:id', auth, async (req, res) => {
     if (req.body.invoiceNumber && req.body.invoiceNumber !== invoice.invoiceNumber) {
       const existingInvoice = await Invoice.findOne({
         invoiceNumber: req.body.invoiceNumber,
-        user: req.userId,
+        userId: req.userId,
         _id: { $ne: req.params.id }
       });
 
@@ -271,7 +271,7 @@ router.delete('/:id', auth, async (req, res) => {
 
     const invoice = await Invoice.findOneAndDelete({
       _id: req.params.id,
-      user: req.userId
+      userId: req.userId
     });
 
     if (!invoice) {
@@ -297,7 +297,7 @@ router.post('/:id/send-email', auth, async (req, res) => {
     console.log('🔍 Step 1: Finding invoice...');
     const invoice = await Invoice.findOne({
       _id: req.params.id,
-      user: req.userId
+      userId: req.userId
     });
 
     if (!invoice) {
