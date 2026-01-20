@@ -273,7 +273,9 @@ function CreateInvoice() {
         total: calculateTotal(),
       };
 
-      await api.post('/api/invoices', invoiceData);
+      await axios.post(`${API_URL}/api/invoices`, invoiceData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
       navigate('/dashboard');
     } catch (error) {
       console.error('Error creating invoice:', error);
