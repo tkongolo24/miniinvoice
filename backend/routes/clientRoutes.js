@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Client = require('../models/client');
-const Invoice = require('../models/Invoice');
+const Invoice = require('../models/invoice');
 
 // All routes require authentication
 router.use(auth);
