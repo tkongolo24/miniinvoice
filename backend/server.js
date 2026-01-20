@@ -5,6 +5,11 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
+const clientRoutes = require('./routes/clientRoutes');
+const authRoutes = require('./routes/authRoutes');
+const invoiceRoutes = require('./routes/invoiceRoutes');
+
+
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
@@ -24,6 +29,10 @@ app.set('trust proxy', 1);
 // Security Middleware
 app.use(helmet());
 app.use(mongoSanitize());
+app.use('/api/clients', clientRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/invoices', invoiceRoutes);
+
 
 // CORS Configuration
 const allowedOrigins = [
@@ -112,7 +121,7 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 // Payment Reminder Scheduler
-const Invoice = require('./models/invoice');
+const Invoice = require('./models/Invoice');
 const User = require('./models/user');
 const { sendPaymentReminderEmail } = require('./services/emailService');
 
