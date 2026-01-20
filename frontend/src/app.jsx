@@ -17,6 +17,7 @@ import { inject } from '@vercel/analytics';
 import MagicSignin from './pages/MagicSignin';
 import ResetPassword from './pages/ResetPassword';
 import LandingPage from './pages/LandingPage';
+import Clients from './pages/Clients';
 //import ClientAPITest from './pages/ClientAPITest';
 
 
@@ -98,6 +99,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <CompanyProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/clients"
+                element={
+                  <ProtectedRoute>
+                    <Clients />
                   </ProtectedRoute>
                 }
               />
