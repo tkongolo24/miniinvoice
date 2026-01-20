@@ -23,8 +23,17 @@ function CreateInvoice() {
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [errors, setErrors] = useState({});
+  
+  // NEW: Client dropdown state
+  const [clients, setClients] = useState([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  
   const [formData, setFormData] = useState({
     invoiceNumber: `INV-${Date.now()}`,
+    clientId: null, // NEW: Store client ID
     clientName: '',
     clientEmail: '',
     clientAddress: '',
@@ -40,8 +49,12 @@ function CreateInvoice() {
     discountType: 'percentage',
   });
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const token = localStorage.getItem('token');
+
   useEffect(() => {
     checkProfileComplete();
+    fetchClients(); // NEW: Fetch clients on mount
   }, []);
 
   useEffect(() => {
@@ -51,15 +64,81 @@ function CreateInvoice() {
     }));
   }, [formData.currency]);
 
+  // NEW: Fetch clients from API
+  const fetchClients = async () => {
+    try {
+      setLoadingClients(true);
+      const response = await axios.get(`${API_URL}/api/clients`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setClients(response.data);
+    } catch (err) {
+      console.error('Failed to fetch clients:', err);
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
+  // NEW: Handle client selection
+  const handleClientSelect = (client) => {
+    setSelectedClient(client);
+    setShowClientDropdown(false);
+    setClientSearchTerm('');
+    
+    // Auto-fill client details
+    setFormData((prev) => ({
+      ...prev,
+      clientId: client._id,
+      clientName: client.name,
+      clientEmail: client.email,
+      clientAddress: [client.address, client.city, client.country]
+        .filter(Boolean)
+        .join(', '),
+    }));
+
+    // Auto-calculate due date based on payment terms
+    if (client.paymentTerms && formData.dateIssued) {
+      const issueDate = new Date(formData.dateIssued);
+      const dueDate = new Date(issueDate);
+      dueDate.setDate(dueDate.getDate() + client.paymentTerms);
+      setFormData((prev) => ({
+        ...prev,
+        dueDate: dueDate.toISOString().split('T')[0],
+      }));
+    }
+
+    // Clear any errors
+    setErrors((prev) => ({
+      ...prev,
+      clientName: '',
+      clientEmail: '',
+      clientAddress: '',
+    }));
+  };
+
+  // NEW: Clear selected client
+  const handleClearClient = () => {
+    setSelectedClient(null);
+    setFormData((prev) => ({
+      ...prev,
+      clientId: null,
+      clientName: '',
+      clientEmail: '',
+      clientAddress: '',
+    }));
+  };
+
+  // NEW: Filter clients based on search
+  const filteredClients = clients.filter((client) =>
+    client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+    client.email.toLowerCase().includes(clientSearchTerm.toLowerCase())
+  );
+
   const checkProfileComplete = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/settings`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await axios.get(`${API_URL}/api/settings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.data.profileCompleted) {
         setShowProfileModal(true);
       }
@@ -349,9 +428,92 @@ function CreateInvoice() {
               </div>
             </div>
 
-            {/* Client Information */}
+            {/* Client Information with Dropdown */}
             <div className="border-t border-gray-200 pt-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Client Information</h2>
+              
+              {/* NEW: Client Dropdown Section */}
+              {!selectedClient ? (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Existing Client (Optional)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="🔍 Search clients by name or email..."
+                      value={clientSearchTerm}
+                      onChange={(e) => {
+                        setClientSearchTerm(e.target.value);
+                        setShowClientDropdown(true);
+                      }}
+                      onFocus={() => setShowClientDropdown(true)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    
+                    {/* Dropdown Results */}
+                    {showClientDropdown && filteredClients.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {loadingClients ? (
+                          <div className="p-4 text-center text-gray-500">Loading clients...</div>
+                        ) : (
+                          filteredClients.map((client) => (
+                            <button
+                              key={client._id}
+                              type="button"
+                              onClick={() => handleClientSelect(client)}
+                              className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition"
+                            >
+                              <div className="font-medium text-gray-900">{client.name}</div>
+                              <div className="text-sm text-gray-600">{client.email}</div>
+                              {(client.city || client.country) && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  📍 {[client.city, client.country].filter(Boolean).join(', ')}
+                                </div>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className="mt-2 text-sm text-gray-500">
+                    Or enter client details manually below
+                  </p>
+                </div>
+              ) : (
+                /* NEW: Selected Client Display */
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-green-600 font-medium">✅ Client Selected:</span>
+                        <span className="font-semibold text-gray-900">{selectedClient.name}</span>
+                      </div>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <div>📧 {selectedClient.email}</div>
+                        {selectedClient.phone && <div>📞 {selectedClient.phone}</div>}
+                        {(selectedClient.city || selectedClient.country) && (
+                          <div>📍 {[selectedClient.city, selectedClient.country].filter(Boolean).join(', ')}</div>
+                        )}
+                        {selectedClient.paymentTerms && (
+                          <div>📅 Payment Terms: {selectedClient.paymentTerms} days</div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearClient}
+                      className="ml-4 px-3 py-1 text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Manual Entry Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -362,9 +524,10 @@ function CreateInvoice() {
                     name="clientName"
                     value={formData.clientName}
                     onChange={handleChange}
+                    disabled={!!selectedClient}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.clientName ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    } ${selectedClient ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     required
                   />
                   {errors.clientName && (
@@ -381,9 +544,10 @@ function CreateInvoice() {
                     name="clientEmail"
                     value={formData.clientEmail}
                     onChange={handleChange}
+                    disabled={!!selectedClient}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.clientEmail ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    } ${selectedClient ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     required
                   />
                   {errors.clientEmail && (
@@ -399,10 +563,11 @@ function CreateInvoice() {
                     name="clientAddress"
                     value={formData.clientAddress}
                     onChange={handleChange}
+                    disabled={!!selectedClient}
                     rows="3"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.clientAddress ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    } ${selectedClient ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     required
                   />
                   {errors.clientAddress && (
@@ -716,6 +881,14 @@ function CreateInvoice() {
           </form>
         </div>
       </div>
+
+      {/* Click outside to close dropdown */}
+      {showClientDropdown && (
+        <div
+          className="fixed inset-0 z-0"
+          onClick={() => setShowClientDropdown(false)}
+        />
+      )}
     </div>
   );
 }
