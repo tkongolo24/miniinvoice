@@ -264,11 +264,10 @@ function CreateInvoice() {
 
     setLoading(true);
     try {
-      // Extract clientId since it's not part of the Invoice schema
-      const { clientId, ...invoiceFields } = formData;
-
+      // FIXED: Include clientId in the invoice data
       const invoiceData = {
-        ...invoiceFields,
+        ...formData,
+        clientId: formData.clientId, // Now clientId will be sent to backend
         subtotal: calculateSubtotal(),
         discount: formData.hasDiscount ? parseFloat(formData.discount) || 0 : 0,
         netAmount: calculateNetAmount(),
