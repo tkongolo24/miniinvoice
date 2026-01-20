@@ -204,6 +204,12 @@ const Dashboard = () => {
                 + New Invoice
               </Link>
               <Link
+                to="/clients"
+                className="bg-green-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-green-700 transition duration-200 font-medium text-sm sm:text-base text-center"
+              >
+                Clients
+              </Link>
+              <Link
                 to="/company-profile"
                 className="bg-gray-200 text-gray-700 px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-300 transition duration-200 font-medium text-sm sm:text-base text-center"
               >
