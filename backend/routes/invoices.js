@@ -136,6 +136,7 @@ router.post('/', auth, async (req, res) => {
       invoiceNumber,
       clientName,
       clientEmail,
+      clientId,
       items,
       currency,
       taxRate
