@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const Client = require('../models/client');
+const Client = require('../models/Client');
 const Invoice = require('../models/Invoice');
 
 // All routes require authentication
@@ -24,7 +24,7 @@ router.post('/', async (req, res) => {
 
     // Check if client with same email already exists
     const existingClient = await Client.findOne({
-      userId: req.user.id,
+      userId: req.userId,
       email: email.toLowerCase(),
     });
 
@@ -35,7 +35,7 @@ router.post('/', async (req, res) => {
     }
 
     const client = await Client.create({
-      userId: req.user.id,
+      userId: req.userId,
       name,
       email,
       phone,
@@ -61,7 +61,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const { search } = req.query;
-    const query = { userId: req.user.id };
+    const query = { userId: req.userId };
 
     if (search) {
       query.$or = [
@@ -76,7 +76,7 @@ router.get('/', async (req, res) => {
     const clientsWithStats = await Promise.all(
       clients.map(async (client) => {
         const invoices = await Invoice.find({
-          userId: req.user.id,
+          userId: req.userId,
           clientId: client._id,
         }).select('total status');
 
@@ -111,7 +111,7 @@ router.get('/:id', async (req, res) => {
   try {
     const client = await Client.findOne({
       _id: req.params.id,
-      userId: req.user.id,
+      userId: req.userId,
     });
 
     if (!client) {
@@ -119,7 +119,7 @@ router.get('/:id', async (req, res) => {
     }
 
     const invoices = await Invoice.find({
-      userId: req.user.id,
+      userId: req.userId,
       clientId: client._id,
     }).select('invoiceNumber dateIssued total status currency');
 
@@ -163,7 +163,7 @@ router.put('/:id', async (req, res) => {
 
     const client = await Client.findOne({
       _id: req.params.id,
-      userId: req.user.id,
+      userId: req.userId,
     });
 
     if (!client) {
@@ -173,7 +173,7 @@ router.put('/:id', async (req, res) => {
     // Check if email is being changed and if it already exists
     if (email && email.toLowerCase() !== client.email) {
       const existingClient = await Client.findOne({
-        userId: req.user.id,
+        userId: req.userId,
         email: email.toLowerCase(),
         _id: { $ne: client._id },
       });
@@ -211,7 +211,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const client = await Client.findOne({
       _id: req.params.id,
-      userId: req.user.id,
+      userId: req.userId,
     });
 
     if (!client) {
@@ -220,7 +220,7 @@ router.delete('/:id', async (req, res) => {
 
     // Check if client has invoices
     const invoiceCount = await Invoice.countDocuments({
-      userId: req.user.id,
+      userId: req.userId,
       clientId: client._id,
     });
 
@@ -251,7 +251,7 @@ router.get('/:id/invoices', async (req, res) => {
   try {
     const client = await Client.findOne({
       _id: req.params.id,
-      userId: req.user.id,
+      userId: req.userId,
     });
 
     if (!client) {
@@ -259,7 +259,7 @@ router.get('/:id/invoices', async (req, res) => {
     }
 
     const invoices = await Invoice.find({
-      userId: req.user.id,
+      userId: req.userId,
       clientId: client._id,
     }).sort({ dateIssued: -1 });
 
