@@ -163,7 +163,8 @@ function CreateInvoice() {
       ...updatedItems[itemIndex],
       description: product.name + (product.description ? ` - ${product.description}` : ''),
       unitPrice: product.unitPrice,
-      productId: product._id, // Store reference to product
+      productId: product._id, 
+      taxable: product.taxable, 
     };
     setFormData((prev) => ({ ...prev, items: updatedItems }));
     setShowProductDropdown(null);
@@ -240,20 +241,30 @@ function CreateInvoice() {
   };
 
   const calculateTax = () => {
-    const grossPrice = calculateSubtotal();
-    const discount = calculateDiscount();
-    const discountedGross = grossPrice - discount;
-    const taxRate = parseFloat(formData.taxRate) || 0;
-    // Extract VAT from VAT-inclusive price
-    return discountedGross * (taxRate / (100 + taxRate));
+  const discount = calculateDiscount();
+  const taxRate = parseFloat(formData.taxRate) || 0;
+  
+  // Calculate tax only for taxable items
+  const taxableSubtotal = formData.items.reduce((sum, item) => {
+    // If item has taxable property set to false, exclude it
+    if (item.taxable === false) return sum;
+    
+    const itemTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0);
+    return sum + itemTotal;
+  }, 0);
+  
+  // Apply discount proportionally
+  const discountedTaxableAmount = taxableSubtotal - (discount * (taxableSubtotal / calculateSubtotal()));
+  
+  // Extract VAT from VAT-inclusive price
+  return discountedTaxableAmount * (taxRate / (100 + taxRate));
   };
 
   const calculateNetAmount = () => {
-    const grossPrice = calculateSubtotal();
-    const discount = calculateDiscount();
-    const discountedGross = grossPrice - discount;
-    const tax = calculateTax();
-    return discountedGross - tax;
+  const subtotal = calculateSubtotal();
+  const discount = calculateDiscount();
+  const tax = calculateTax();
+  return subtotal - discount - tax;
   };
 
   const calculateTotal = () => {

@@ -43,23 +43,32 @@ const invoiceSchema = new mongoose.Schema(
       required: true,
     },
     items: [
-      {
-        description: {
-          type: String,
-          required: true,
+        {
+          description: {
+            type: String,
+            required: true,
+          },
+          quantity: {
+            type: Number,
+            required: true,
+            min: 1,
+          },
+          unitPrice: {
+            type: Number,
+            required: true,
+            min: 0,
+          },
+          productId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product',
+            default: null,
+          },
+          taxable: {
+            type: Boolean,
+            default: true, // Default to taxable
+          },
         },
-        quantity: {
-          type: Number,
-          required: true,
-          min: 1,
-        },
-        unitPrice: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
-      },
-    ],
+      ],
     subtotal: {
       type: Number,
       required: true,
