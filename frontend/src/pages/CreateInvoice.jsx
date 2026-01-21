@@ -33,7 +33,7 @@ function CreateInvoice() {
   
   const [formData, setFormData] = useState({
     invoiceNumber: `INV-${Date.now()}`,
-    clientId: null, // NEW: Store client ID
+    clientId: null, 
     clientName: '',
     clientEmail: '',
     clientAddress: '',

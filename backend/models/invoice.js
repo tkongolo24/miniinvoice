@@ -73,6 +73,10 @@ const invoiceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    netAmount: {
+      type: Number,
+      default: 0,
+    },
     discount: {
       type: Number,
       default: 0,
