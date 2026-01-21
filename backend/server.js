@@ -69,19 +69,21 @@ const authLimiter = rateLimit({
   message: 'Too many login attempts, please try again later.'
 });
 
-// Import Routes (ONLY ONCE!)
+// Import Routes 
 const authRoutes = require('./routes/auth');
 const invoiceRoutes = require('./routes/invoices');
 const settingsRoutes = require('./routes/settings');
 const clientRoutes = require('./routes/clientRoutes');
+const productRoutes = require('./routes/productRoutes');
 
-// Register Routes (AFTER body parser!)
+// Register Routes 
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/products', productRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

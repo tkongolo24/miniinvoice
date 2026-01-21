@@ -18,8 +18,7 @@ import MagicSignin from './pages/MagicSignin';
 import ResetPassword from './pages/ResetPassword';
 import LandingPage from './pages/LandingPage';
 import Clients from './pages/Clients';
-//import ClientAPITest from './pages/ClientAPITest';
-
+import Products from './pages/Products';
 
 
 inject();
@@ -44,7 +43,7 @@ function App() {
               <Route path="/magic-signin" element={<MagicSignin />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/i/:shareToken" element={<PublicInvoice />} />
-              {/* <Route path="/test-clients" element={<ClientAPITest />} /> */}
+              <Route path="/products" element={<Products />} />
 
               <Route
                 path="/dashboard"
