@@ -31,9 +31,15 @@ function CreateInvoice() {
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   
+  // NEW: Product dropdown state
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [showProductDropdown, setShowProductDropdown] = useState(null); // Track which item index
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  
   const [formData, setFormData] = useState({
     invoiceNumber: `INV-${Date.now()}`,
-    clientId: null, 
+    clientId: null, // NEW: Store client ID
     clientName: '',
     clientEmail: '',
     clientAddress: '',
@@ -54,7 +60,8 @@ function CreateInvoice() {
 
   useEffect(() => {
     checkProfileComplete();
-    fetchClients(); // NEW: Fetch clients on mount
+    fetchClients();
+    fetchProducts(); // NEW: Fetch products on mount
   }, []);
 
   useEffect(() => {
@@ -76,6 +83,21 @@ function CreateInvoice() {
       console.error('Failed to fetch clients:', err);
     } finally {
       setLoadingClients(false);
+    }
+  };
+
+  // NEW: Fetch products from API
+  const fetchProducts = async () => {
+    try {
+      setLoadingProducts(true);
+      const response = await axios.get(`${API_URL}/api/products`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProducts(response.data);
+    } catch (err) {
+      console.error('Failed to fetch products:', err);
+    } finally {
+      setLoadingProducts(false);
     }
   };
 
@@ -132,6 +154,27 @@ function CreateInvoice() {
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
     client.email.toLowerCase().includes(clientSearchTerm.toLowerCase())
+  );
+
+  // NEW: Handle product selection for an item
+  const handleProductSelect = (product, itemIndex) => {
+    const updatedItems = [...formData.items];
+    updatedItems[itemIndex] = {
+      ...updatedItems[itemIndex],
+      description: product.name + (product.description ? ` - ${product.description}` : ''),
+      unitPrice: product.unitPrice,
+      productId: product._id, // Store reference to product
+    };
+    setFormData((prev) => ({ ...prev, items: updatedItems }));
+    setShowProductDropdown(null);
+    setProductSearchTerm('');
+  };
+
+  // NEW: Filter products based on search
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+    product.description?.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+    product.category?.toLowerCase().includes(productSearchTerm.toLowerCase())
   );
 
   const checkProfileComplete = async () => {
@@ -581,14 +624,25 @@ function CreateInvoice() {
               </div>
             </div>
 
-            {/* Items - QUICK WIN #1: Button moved to bottom */}
+            {/* Items with Product Dropdown */}
             <div className="border-t border-gray-200 pt-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Invoice Items</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Invoice Items</h2>
+                <button
+                  type="button"
+                  onClick={() => navigate('/products')}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  + Manage Products
+                </button>
+              </div>
+              
               {errors.items && (
                 <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {errors.items}
                 </div>
               )}
+              
               <div className="space-y-4">
                 {formData.items.map((item, index) => (
                   <div key={index} className="bg-gray-50 p-4 rounded-lg">
@@ -597,6 +651,48 @@ function CreateInvoice() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Description
                         </label>
+                        
+                        {/* Product Search Dropdown */}
+                        <div className="relative mb-2">
+                          <input
+                            type="text"
+                            placeholder="🔍 Search products..."
+                            value={showProductDropdown === index ? productSearchTerm : ''}
+                            onChange={(e) => {
+                              setProductSearchTerm(e.target.value);
+                              setShowProductDropdown(index);
+                            }}
+                            onFocus={() => setShowProductDropdown(index)}
+                            className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          />
+                          
+                          {/* Dropdown Results */}
+                          {showProductDropdown === index && filteredProducts.length > 0 && (
+                            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {loadingProducts ? (
+                                <div className="p-4 text-center text-gray-500 text-sm">Loading products...</div>
+                              ) : (
+                                filteredProducts.map((product) => (
+                                  <button
+                                    key={product._id}
+                                    type="button"
+                                    onClick={() => handleProductSelect(product, index)}
+                                    className="w-full text-left px-4 py-3 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition"
+                                  >
+                                    <div className="font-medium text-gray-900 text-sm">{product.name}</div>
+                                    <div className="text-xs text-gray-600 flex justify-between mt-1">
+                                      <span>{product.description}</span>
+                                      <span className="font-semibold text-blue-600">
+                                        {getCurrencySymbol()} {product.unitPrice.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
                         <input
                           type="text"
                           value={item.description}
@@ -606,7 +702,7 @@ function CreateInvoice() {
                           className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                             !item.description.trim() ? 'border-red-300 bg-red-50' : 'border-gray-300'
                           }`}
-                          placeholder="Item description"
+                          placeholder="Item description or use search above"
                           required
                         />
                       </div>
@@ -672,7 +768,6 @@ function CreateInvoice() {
                   </div>
                 ))}
 
-                {/* QUICK WIN #1: Add Item button moved to BOTTOM */}
                 <button
                   type="button"
                   onClick={addItem}
@@ -891,6 +986,17 @@ function CreateInvoice() {
         <div
           className="fixed inset-0 z-0"
           onClick={() => setShowClientDropdown(false)}
+        />
+      )}
+
+      {/* Click outside to close product dropdown */}
+      {showProductDropdown !== null && (
+        <div
+          className="fixed inset-0 z-10"
+          onClick={() => {
+            setShowProductDropdown(null);
+            setProductSearchTerm('');
+          }}
         />
       )}
     </div>
