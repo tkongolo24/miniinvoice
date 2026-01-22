@@ -4,7 +4,6 @@ import Login from './pages/login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateInvoice from './pages/CreateInvoice';
-import EditInvoice from './pages/EditInvoice';
 import InvoiceDetail from './pages/InvoiceDetail';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
@@ -19,7 +18,6 @@ import ResetPassword from './pages/ResetPassword';
 import LandingPage from './pages/LandingPage';
 import Clients from './pages/Clients';
 import Products from './pages/Products';
-
 
 inject();
 
@@ -36,6 +34,7 @@ function App() {
         <LanguageProvider>
           <Router>
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -43,8 +42,8 @@ function App() {
               <Route path="/magic-signin" element={<MagicSignin />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/i/:shareToken" element={<PublicInvoice />} />
-              <Route path="/products" element={<Products />} />
 
+              {/* Protected routes */}
               <Route
                 path="/dashboard"
                 element={
@@ -61,11 +60,12 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              {/* FIXED: Single edit route using CreateInvoice component */}
               <Route
                 path="/edit-invoice/:id"
                 element={
                   <ProtectedRoute>
-                    <EditInvoice />
+                    <CreateInvoice />
                   </ProtectedRoute>
                 }
               />
@@ -106,6 +106,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Clients />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/products"
+                element={
+                  <ProtectedRoute>
+                    <Products />
                   </ProtectedRoute>
                 }
               />
