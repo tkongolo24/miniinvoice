@@ -2,6 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ProfileCompleteModal from '../components/ProfileCompleteModal';
+// Heroicons for better, accessible icons
+import {
+  UserGroupIcon,
+  CubeIcon,
+  BuildingOfficeIcon,
+  ArrowRightOnRectangleIcon,
+  EyeIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  EllipsisVerticalIcon,
+  PlusCircleIcon,
+} from '@heroicons/react/24/outline';
 
 // QUICK WIN #4: Date formatter utility
 const formatDate = (date) => {
@@ -274,9 +286,11 @@ const Dashboard = () => {
               </div>
               <Link
                 to="/create-invoice"
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-center shadow-sm"
+                className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-center shadow-sm"
+                aria-label="Create new invoice"
               >
-                + New Invoice
+                <PlusCircleIcon className="w-5 h-5" aria-hidden="true" />
+                New Invoice
               </Link>
             </div>
 
@@ -285,37 +299,33 @@ const Dashboard = () => {
               <Link
                 to="/clients"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm"
+                aria-label="Manage clients"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+                <UserGroupIcon className="w-5 h-5" aria-hidden="true" />
                 Clients
               </Link>
               <Link
                 to="/products"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm"
+                aria-label="Manage products and services"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
+                <CubeIcon className="w-5 h-5" aria-hidden="true" />
                 Products
               </Link>
               <Link
                 to="/company-profile"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm"
+                aria-label="Edit company profile"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
+                <BuildingOfficeIcon className="w-5 h-5" aria-hidden="true" />
                 Company Profile
               </Link>
               <button
                 onClick={handleLogout}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm ml-auto"
+                aria-label="Logout from account"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
+                <ArrowRightOnRectangleIcon className="w-5 h-5" aria-hidden="true" />
                 Logout
               </button>
             </div>
@@ -432,13 +442,11 @@ const Dashboard = () => {
                         <div className="relative">
                           <button
                             onClick={(e) => toggleDropdown(invoice._id, e)}
-                            className="p-1 hover:bg-gray-100 rounded transition-colors"
-                            aria-label="Invoice actions"
+                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                            aria-label="Open invoice actions menu"
                             data-dropdown-trigger
                           >
-                            <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                            </svg>
+                            <EllipsisVerticalIcon className="w-5 h-5 text-gray-600" aria-hidden="true" />
                           </button>
                         </div>
                       </td>
@@ -478,13 +486,11 @@ const Dashboard = () => {
                       <div className="relative">
                         <button
                           onClick={(e) => toggleDropdown(invoice._id, e)}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors"
-                          aria-label="Invoice actions"
+                          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                          aria-label="Open invoice actions menu"
                           data-dropdown-trigger
                         >
-                          <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                          </svg>
+                          <EllipsisVerticalIcon className="w-5 h-5 text-gray-600" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -518,11 +524,9 @@ const Dashboard = () => {
             to={`/invoice/${openDropdown}`}
             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             onClick={() => setOpenDropdown(null)}
+            aria-label="View invoice details"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
+            <EyeIcon className="w-4 h-4" aria-hidden="true" />
             View Invoice
           </Link>
 
@@ -531,10 +535,9 @@ const Dashboard = () => {
             <button
               onClick={() => handleEdit(openDropdown)}
               className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+              aria-label="Edit invoice"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
+              <PencilSquareIcon className="w-4 h-4" aria-hidden="true" />
               Edit Invoice
             </button>
           )}
@@ -542,10 +545,9 @@ const Dashboard = () => {
           <button
             onClick={() => handleDeleteClick(invoices.find(inv => inv._id === openDropdown))}
             className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+            aria-label="Delete invoice"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <TrashIcon className="w-4 h-4" aria-hidden="true" />
             Delete Invoice
           </button>
         </div>
