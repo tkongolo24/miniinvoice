@@ -47,9 +47,20 @@ const Dashboard = () => {
       }
     };
     
+    // Close dropdown on window resize to prevent positioning issues
+    const handleResize = () => {
+      if (openDropdown) {
+        setOpenDropdown(null);
+      }
+    };
+    
     if (openDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      window.addEventListener('resize', handleResize);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('resize', handleResize);
+      };
     }
   }, [openDropdown]);
 
@@ -95,17 +106,36 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  // SPRINT 4: Toggle dropdown menu with position calculation
+  // SPRINT 4: Toggle dropdown menu with smart position calculation
   const toggleDropdown = (invoiceId, event) => {
     if (openDropdown === invoiceId) {
       setOpenDropdown(null);
     } else {
       const button = event.currentTarget;
       const rect = button.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4, // 4px gap below button
-        left: rect.right + window.scrollX - 192, // 192px = w-48 (dropdown width)
-      });
+      const dropdownWidth = 192; // w-48 = 192px
+      const dropdownHeight = 150; // approximate height
+      
+      // Calculate position
+      let top = rect.bottom + window.scrollY + 4;
+      let left = rect.right + window.scrollX - dropdownWidth;
+      
+      // Check if dropdown goes off right edge
+      if (left < 10) {
+        left = rect.left + window.scrollX; // Align to left of button instead
+      }
+      
+      // Check if dropdown goes off left edge
+      if (left + dropdownWidth > window.innerWidth - 10) {
+        left = window.innerWidth - dropdownWidth - 10;
+      }
+      
+      // Check if dropdown goes off bottom edge
+      if (top + dropdownHeight > window.innerHeight + window.scrollY - 10) {
+        top = rect.top + window.scrollY - dropdownHeight - 4; // Show above button
+      }
+      
+      setDropdownPosition({ top, left });
       setOpenDropdown(invoiceId);
     }
   };
@@ -478,7 +508,7 @@ const Dashboard = () => {
       {openDropdown && (
         <div
           ref={dropdownRef}
-          className="fixed w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50"
+          className="fixed w-48 bg-white rounded-lg shadow-2xl border border-gray-200 py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
@@ -486,7 +516,7 @@ const Dashboard = () => {
         >
           <Link
             to={`/invoice/${openDropdown}`}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             onClick={() => setOpenDropdown(null)}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -500,7 +530,7 @@ const Dashboard = () => {
           {invoices.find(inv => inv._id === openDropdown)?.status === 'unpaid' && (
             <button
               onClick={() => handleEdit(openDropdown)}
-              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
+              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -511,7 +541,7 @@ const Dashboard = () => {
 
           <button
             onClick={() => handleDeleteClick(invoices.find(inv => inv._id === openDropdown))}
-            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
