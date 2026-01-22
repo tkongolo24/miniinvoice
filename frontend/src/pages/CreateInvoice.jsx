@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import axios from 'axios';
 
@@ -18,11 +18,14 @@ const DEFAULT_TAX_RATES = {
 };
 
 function CreateInvoice() {
+  const { id } = useParams(); // Detect if we're in edit mode
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [loadingInvoice, setLoadingInvoice] = useState(!!id); // Loading if editing
   
   // NEW: Client dropdown state
   const [clients, setClients] = useState([]);
@@ -58,11 +61,70 @@ function CreateInvoice() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const token = localStorage.getItem('token');
 
+  // NEW: Fetch invoice for edit mode
+  const fetchInvoice = async () => {
+    try {
+      setLoadingInvoice(true);
+      const response = await axios.get(`${API_URL}/api/invoices/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      const invoice = response.data;
+
+      // Check if invoice is paid - block editing
+      if (invoice.status === 'paid') {
+        alert('Cannot edit a paid invoice. Paid invoices are locked to maintain records integrity.');
+        navigate(`/invoice/${id}`);
+        return;
+      }
+
+      setIsEditMode(true);
+
+      // Pre-fill form with invoice data
+      setFormData({
+        invoiceNumber: invoice.invoiceNumber,
+        clientId: invoice.clientId || null,
+        clientName: invoice.clientName,
+        clientEmail: invoice.clientEmail,
+        clientAddress: invoice.clientAddress || '',
+        dateIssued: invoice.dateIssued.split('T')[0],
+        dueDate: invoice.dueDate.split('T')[0],
+        items: invoice.items.map(item => ({
+          description: item.description,
+          quantity: item.quantity.toString(),
+          unitPrice: item.unitPrice.toString(),
+          productId: item.productId || null,
+          taxable: item.taxable !== false,
+        })),
+        notes: invoice.notes || '',
+        currency: invoice.currency,
+        template: invoice.template || 'classic',
+        taxRate: invoice.taxRate || DEFAULT_TAX_RATES[invoice.currency],
+        hasDiscount: invoice.hasDiscount || false,
+        discount: invoice.discount || 0,
+        discountType: invoice.discountType || 'percentage',
+      });
+
+      setLoadingInvoice(false);
+      setCheckingProfile(false);
+    } catch (error) {
+      console.error('Error fetching invoice:', error);
+      alert('Failed to load invoice');
+      navigate('/dashboard');
+    }
+  };
+
   useEffect(() => {
-    checkProfileComplete();
+    if (id) {
+      // Edit mode - fetch the invoice
+      fetchInvoice();
+    } else {
+      // Create mode - check profile
+      checkProfileComplete();
+    }
     fetchClients();
-    fetchProducts(); // NEW: Fetch products on mount
-  }, []);
+    fetchProducts();
+  }, [id]);
 
   useEffect(() => {
     setFormData((prev) => ({
@@ -322,10 +384,9 @@ function CreateInvoice() {
 
     setLoading(true);
     try {
-      // FIXED: Include clientId in the invoice data
       const invoiceData = {
         ...formData,
-        clientId: formData.clientId, // Now clientId will be sent to backend
+        clientId: formData.clientId,
         subtotal: calculateSubtotal(),
         discount: formData.hasDiscount ? parseFloat(formData.discount) || 0 : 0,
         netAmount: calculateNetAmount(),
@@ -333,14 +394,23 @@ function CreateInvoice() {
         total: calculateTotal(),
       };
 
-      await axios.post(`${API_URL}/api/invoices`, invoiceData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      navigate('/dashboard');
+      if (isEditMode) {
+        // Update existing invoice
+        await axios.put(`${API_URL}/api/invoices/${id}`, invoiceData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        navigate(`/invoice/${id}`);
+      } else {
+        // Create new invoice
+        await axios.post(`${API_URL}/api/invoices`, invoiceData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        navigate('/dashboard');
+      }
     } catch (error) {
-      console.error('Error creating invoice:', error);
+      console.error('Error saving invoice:', error);
       setErrors({
-        submit: error.response?.data?.message || 'Failed to create invoice. Please try again.',
+        submit: error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} invoice. Please try again.`,
       });
     } finally {
       setLoading(false);
@@ -352,12 +422,12 @@ function CreateInvoice() {
     return currency ? currency.symbol : '';
   };
 
-  if (checkingProfile) {
+  if (checkingProfile || loadingInvoice) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">{loadingInvoice ? 'Loading invoice...' : 'Loading...'}</p>
         </div>
       </div>
     );
@@ -413,7 +483,22 @@ function CreateInvoice() {
 
       <div className="max-w-4xl mx-auto">
         <div className="bg-white shadow-lg rounded-lg p-6 sm:p-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Create Invoice</h1>
+          {isEditMode ? (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-3xl font-bold text-gray-900">Edit Invoice</h1>
+                <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-lg">
+                  <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span className="text-sm font-medium text-orange-800">Editing Unpaid Invoice</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">Invoice #{formData.invoiceNumber}</p>
+            </div>
+          ) : (
+            <h1 className="text-3xl font-bold text-gray-900 mb-8">Create Invoice</h1>
+          )}
 
           {errors.submit && (
             <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -985,10 +1070,10 @@ function CreateInvoice() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    Creating Invoice...
+                    {isEditMode ? 'Updating Invoice...' : 'Creating Invoice...'}
                   </>
                 ) : (
-                  'Create Invoice'
+                  isEditMode ? 'Update Invoice' : 'Create Invoice'
                 )}
               </button>
             </div>

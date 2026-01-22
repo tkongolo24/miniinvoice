@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ProfileCompleteModal from '../components/ProfileCompleteModal';
@@ -24,11 +24,25 @@ const Dashboard = () => {
     show: false,
     invoice: null
   });
+  // SPRINT 4: Dropdown menu state for actions
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchInvoices();
     checkProfileComplete();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const checkProfileComplete = async () => {
@@ -73,12 +87,24 @@ const Dashboard = () => {
     navigate('/login');
   };
 
+  // SPRINT 4: Toggle dropdown menu
+  const toggleDropdown = (invoiceId) => {
+    setOpenDropdown(openDropdown === invoiceId ? null : invoiceId);
+  };
+
+  // SPRINT 4: Handle edit navigation
+  const handleEdit = (invoiceId) => {
+    navigate(`/edit-invoice/${invoiceId}`);
+    setOpenDropdown(null);
+  };
+
   // QUICK WIN #3: Show delete confirmation modal
   const handleDeleteClick = (invoice) => {
     setDeleteConfirm({
       show: true,
       invoice: invoice
     });
+    setOpenDropdown(null);
   };
 
   // QUICK WIN #3: Actual delete function
@@ -354,19 +380,57 @@ const Dashboard = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <Link
-                            to={`/invoice/${invoice._id}`}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                          >
-                            View
-                          </Link>
+                        {/* SPRINT 4: 3-dot dropdown menu */}
+                        <div className="relative" ref={openDropdown === invoice._id ? dropdownRef : null}>
                           <button
-                            onClick={() => handleDeleteClick(invoice)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                            onClick={() => toggleDropdown(invoice._id)}
+                            className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            aria-label="Invoice actions"
                           >
-                            Delete
+                            <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                            </svg>
                           </button>
+
+                          {/* Dropdown menu */}
+                          {openDropdown === invoice._id && (
+                            <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                              <Link
+                                to={`/invoice/${invoice._id}`}
+                                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                onClick={() => setOpenDropdown(null)}
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View Invoice
+                              </Link>
+
+                              {/* Only show Edit for unpaid invoices */}
+                              {invoice.status === 'unpaid' && (
+                                <button
+                                  onClick={() => handleEdit(invoice._id)}
+                                  className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Edit Invoice
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => handleDeleteClick(invoice)}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Delete Invoice
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -390,37 +454,78 @@ const Dashboard = () => {
                       <p className="font-semibold text-gray-900">{invoice.invoiceNumber}</p>
                       <p className="text-sm text-gray-600 mt-1">{invoice.clientName}</p>
                     </div>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        invoice.status === 'paid'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-orange-100 text-orange-800'
-                      }`}
-                    >
-                      {invoice.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          invoice.status === 'paid'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}
+                      >
+                        {invoice.status}
+                      </span>
+                      
+                      {/* SPRINT 4: 3-dot menu for mobile */}
+                      <div className="relative" ref={openDropdown === invoice._id ? dropdownRef : null}>
+                        <button
+                          onClick={() => toggleDropdown(invoice._id)}
+                          className="p-1 hover:bg-gray-100 rounded transition-colors"
+                          aria-label="Invoice actions"
+                        >
+                          <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                          </svg>
+                        </button>
+
+                        {/* Dropdown menu */}
+                        {openDropdown === invoice._id && (
+                          <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                            <Link
+                              to={`/invoice/${invoice._id}`}
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              onClick={() => setOpenDropdown(null)}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View Invoice
+                            </Link>
+
+                            {/* Only show Edit for unpaid invoices */}
+                            {invoice.status === 'unpaid' && (
+                              <button
+                                onClick={() => handleEdit(invoice._id)}
+                                className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit Invoice
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => handleDeleteClick(invoice)}
+                              className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete Invoice
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center mb-3">
+                  <div className="flex justify-between items-center">
                     <p className="text-sm text-gray-600">
                       {formatDate(invoice.dateIssued)}
                     </p>
                     <p className="font-semibold text-gray-900">
                       {getCurrencySymbol(invoice.currency)} {invoice.total?.toFixed(2)}
                     </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      to={`/invoice/${invoice._id}`}
-                      className="flex-1 text-center bg-blue-600 text-white px-3 py-2 rounded text-sm font-medium"
-                    >
-                      View
-                    </Link>
-                    <button
-                      onClick={() => handleDeleteClick(invoice)}
-                      className="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded text-sm font-medium hover:bg-red-200 transition-colors"
-                    >
-                      Delete
-                    </button>
                   </div>
                 </div>
               ))
