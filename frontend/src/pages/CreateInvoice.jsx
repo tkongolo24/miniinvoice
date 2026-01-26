@@ -50,9 +50,10 @@ function CreateInvoice() {
   const [showProductDropdown, setShowProductDropdown] = useState(null); // Track which item index
   const [productSearchTerm, setProductSearchTerm] = useState('');
   
+  // PHASE 2 CHANGE 1: Removed invoiceNumber from initial state - backend will auto-generate it
   const [formData, setFormData] = useState({
-    invoiceNumber: `INV-${Date.now()}`,
-    clientId: null, // NEW: Store client ID
+    // invoiceNumber removed - backend will auto-generate it
+    clientId: null, 
     clientName: '',
     clientEmail: '',
     clientAddress: '',
@@ -547,19 +548,34 @@ function CreateInvoice() {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Invoice Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Invoice Number
-                </label>
-                <input
-                  type="text"
-                  name="invoiceNumber"
-                  value={formData.invoiceNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
+              {/* PHASE 2 CHANGE 2: Invoice Number - Auto-generated or Read-only */}
+              {isEditMode ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Invoice Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.invoiceNumber}
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-600"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Invoice number cannot be changed</p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Invoice Number
+                  </label>
+                  <div className="px-4 py-2 border border-blue-200 rounded-lg bg-blue-50 text-blue-700 flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-medium">Auto-generated on save</span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Format: INV-YYMM-NNN (e.g., INV-2601-001)</p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

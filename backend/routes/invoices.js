@@ -3,9 +3,11 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const Invoice = require('../models/invoice');
 const Settings = require('../models/settings');
+const User = require('../models/user'); 
 const auth = require('../middleware/auth');
 const crypto = require('crypto');
 const { sendInvoiceEmail } = require('../services/emailService');
+const { generateInvoiceNumber } = require('../utils/invoiceNumberGenerator'); 
 
 // Get public invoice by share token (no login required)
 router.get('/public/:shareToken', async (req, res) => {
@@ -133,7 +135,6 @@ router.patch('/:id/status', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const {
-      invoiceNumber,
       clientName,
       clientEmail,
       clientId,
@@ -141,11 +142,6 @@ router.post('/', auth, async (req, res) => {
       currency,
       taxRate
     } = req.body;
-
-    // Validate required fields
-    if (!invoiceNumber?.trim()) {
-      return res.status(400).json({ message: 'Invoice number is required' });
-    }
 
     if (!clientName?.trim()) {
       return res.status(400).json({ message: 'Client name is required' });
@@ -179,22 +175,21 @@ router.post('/', auth, async (req, res) => {
         return res.status(400).json({ message: `Item ${i + 1}: Unit price cannot be negative` });
       }
     }
-
-    // Check for duplicate invoice number
-    const existingInvoice = await Invoice.findOne({
-      invoiceNumber: invoiceNumber.trim(),
-      userId: req.userId
-    });
-
-    if (existingInvoice) {
-      return res.status(400).json({ message: 'Invoice number already exists' });
+    
+    // Get user and generate invoice number
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    // Create invoice with share token
+    const invoiceNumber = await generateInvoiceNumber(user);
+    console.log('✅ Generated invoice number:', invoiceNumber);
+
+    // Create invoice with generated number and share token
     const invoice = new Invoice({
       ...req.body,
       userId: req.userId,
-      invoiceNumber: invoiceNumber.trim(),
+      invoiceNumber: invoiceNumber, 
       clientName: clientName.trim(),
       clientEmail: clientEmail.trim().toLowerCase(),
       shareToken: crypto.randomBytes(16).toString('hex')
@@ -232,17 +227,11 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    // If updating invoice number, check for duplicates
+    // Prevent changing invoice number on updates
     if (req.body.invoiceNumber && req.body.invoiceNumber !== invoice.invoiceNumber) {
-      const existingInvoice = await Invoice.findOne({
-        invoiceNumber: req.body.invoiceNumber,
-        userId: req.userId,
-        _id: { $ne: req.params.id }
+      return res.status(400).json({ 
+        message: 'Invoice number cannot be changed after creation' 
       });
-
-      if (existingInvoice) {
-        return res.status(400).json({ message: 'Invoice number already exists' });
-      }
     }
 
     // Update invoice

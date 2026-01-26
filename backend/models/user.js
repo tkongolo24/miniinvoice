@@ -79,6 +79,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['free', 'pro', 'enterprise'],
     default: 'free'
+  },
+  invoiceCounters: {
+    type: Map,
+    of: Number,
+    default: new Map()
   }
 }, {
   timestamps: true
