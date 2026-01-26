@@ -47,7 +47,7 @@ const Dashboard = () => {
     checkProfileComplete();
   }, []);
 
-  // Close dropdown when clicking outside (but not on scroll)
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -56,6 +56,13 @@ const Dashboard = () => {
         if (!isDropdownButton) {
           setOpenDropdown(null);
         }
+      }
+    };
+    
+    // Close dropdown on scroll to prevent misalignment
+    const handleScroll = () => {
+      if (openDropdown) {
+        setOpenDropdown(null);
       }
     };
     
@@ -68,9 +75,11 @@ const Dashboard = () => {
     
     if (openDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true); // Use capture phase
       window.addEventListener('resize', handleResize);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', handleScroll, true);
         window.removeEventListener('resize', handleResize);
       };
     }
@@ -118,7 +127,7 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  // SPRINT 4: Toggle dropdown menu with smart position calculation
+  // IMPROVED: Toggle dropdown menu with smart position calculation
   const toggleDropdown = (invoiceId, event) => {
     if (openDropdown === invoiceId) {
       setOpenDropdown(null);
@@ -126,25 +135,41 @@ const Dashboard = () => {
       const button = event.currentTarget;
       const rect = button.getBoundingClientRect();
       const dropdownWidth = 192; // w-48 = 192px
-      const dropdownHeight = 150; // approximate height
+      const dropdownHeight = 180; // approximate height (3 items + spacing)
       
-      // Calculate position
-      let top = rect.bottom + window.scrollY + 4;
-      let left = rect.right + window.scrollX - dropdownWidth;
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
       
-      // Check if dropdown goes off right edge
+      // Decide whether to open up or down based on available space
+      const openUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+      
+      // Calculate vertical position (using viewport coordinates)
+      let top = openUpward 
+        ? rect.top - dropdownHeight - 4  // Above button
+        : rect.bottom + 4;                // Below button
+      
+      // Calculate horizontal position (align to right edge of button)
+      let left = rect.right - dropdownWidth;
+      
+      // Ensure dropdown doesn't go off left edge
       if (left < 10) {
-        left = rect.left + window.scrollX; // Align to left of button instead
+        left = 10;
       }
       
-      // Check if dropdown goes off left edge
+      // Ensure dropdown doesn't go off right edge
       if (left + dropdownWidth > window.innerWidth - 10) {
         left = window.innerWidth - dropdownWidth - 10;
       }
       
-      // Check if dropdown goes off bottom edge
-      if (top + dropdownHeight > window.innerHeight + window.scrollY - 10) {
-        top = rect.top + window.scrollY - dropdownHeight - 4; // Show above button
+      // Ensure dropdown doesn't go off top edge (when opening upward)
+      if (top < 10) {
+        top = 10;
+      }
+      
+      // Ensure dropdown doesn't go off bottom edge (when opening downward)
+      if (top + dropdownHeight > viewportHeight - 10) {
+        top = viewportHeight - dropdownHeight - 10;
       }
       
       setDropdownPosition({ top, left });
@@ -515,7 +540,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* SPRINT 4: Global dropdown portal (renders above everything) */}
+      {/* IMPROVED: Global dropdown portal (renders above everything) */}
       {openDropdown && (
         <div
           ref={dropdownRef}
