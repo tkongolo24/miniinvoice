@@ -103,15 +103,30 @@ const invoiceSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    // PHASE 2: Expanded currency support
     currency: {
       type: String,
-      enum: ['RWF', 'KES', 'NGN', 'CFA'],
+      enum: ['RWF', 'KES', 'NGN', 'XOF', 'XAF', 'CFA', 'USD', 'EUR', 'GBP'],
       default: 'RWF',
     },
     status: {
       type: String,
       enum: ['paid', 'unpaid', 'overdue'],
       default: 'unpaid',
+    },
+    // PHASE 2: Payment tracking fields
+    paymentDate: {
+      type: Date,
+      default: null,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['bank_transfer', 'mobile_money', 'cash', 'card', 'other'],
+      default: null,
+    },
+    paymentNotes: {
+      type: String,
+      default: '',
     },
     notes: {
       type: String,
@@ -121,6 +136,13 @@ const invoiceSchema = new mongoose.Schema(
       type: String,
       enum: ['classic', 'modern', 'elegant'],
       default: 'classic',
+    },
+    // NEW: Share token for public invoice links
+    shareToken: {
+      type: String,
+      default: null,
+      unique: true,
+      sparse: true,
     },
   },
   {
@@ -132,6 +154,7 @@ const invoiceSchema = new mongoose.Schema(
 invoiceSchema.index({ userId: 1, status: 1 });
 invoiceSchema.index({ userId: 1, clientId: 1 });
 invoiceSchema.index({ invoiceNumber: 1 });
+invoiceSchema.index({ shareToken: 1 });
 
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 
