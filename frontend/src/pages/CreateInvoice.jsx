@@ -3,18 +3,28 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import axios from 'axios';
 
+// PHASE 1 FIX: Split CFA into XOF and XAF
 const CURRENCIES = [
   { code: 'RWF', symbol: 'RWF', name: 'Rwandan Franc' },
-  { code: 'KES', symbol: 'KSH', name: 'Kenyan Shilling' },
-  { code: 'NGN', symbol: 'NGN', name: 'Nigerian Naira' },
-  { code: 'CFA', symbol: 'CFA', name: 'CFA Franc' },
+  { code: 'KES', symbol: 'KES', name: 'Kenyan Shilling' },
+  { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+  { code: 'XOF', symbol: 'CFA', name: 'CFA Franc (West Africa)' },
+  { code: 'XAF', symbol: 'FCFA', name: 'CFA Franc (Central Africa)' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
 ];
 
 const DEFAULT_TAX_RATES = {
   RWF: 18,
   KES: 16,
   NGN: 7.5,
-  CFA: 18,
+  XOF: 18, // West Africa
+  XAF: 18, // Central Africa
+  CFA: 18, // Legacy support
+  USD: 0,
+  EUR: 0,
+  GBP: 0,
 };
 
 function CreateInvoice() {
@@ -267,6 +277,11 @@ function CreateInvoice() {
     const updatedItems = [...formData.items];
     updatedItems[index][field] = value;
     setFormData((prev) => ({ ...prev, items: updatedItems }));
+    
+    // PHASE 1 FIX: Clear item errors when user starts typing
+    if (errors.items) {
+      setErrors((prev) => ({ ...prev, items: '' }));
+    }
   };
 
   const addItem = () => {
@@ -340,9 +355,11 @@ function CreateInvoice() {
     return subtotal - discount;
   };
 
+  // PHASE 1 FIX: Enhanced validation with better error messages
   const validateForm = () => {
     const newErrors = {};
 
+    // Client validation
     if (!formData.clientName.trim()) {
       newErrors.clientName = 'Client name is required';
     }
@@ -355,18 +372,33 @@ function CreateInvoice() {
       newErrors.clientAddress = 'Client address is required';
     }
 
+    // Date validation
     if (!formData.dueDate) {
       newErrors.dueDate = 'Due date is required';
     } else if (new Date(formData.dueDate) < new Date(formData.dateIssued)) {
       newErrors.dueDate = 'Due date must be after issue date';
     }
 
-    // QUICK WIN #2: Enhanced validation for items
-    const invalidItems = formData.items.some(
-      (item) => !item.description.trim() || !item.quantity || parseFloat(item.quantity) <= 0 || !item.unitPrice || parseFloat(item.unitPrice) <= 0
-    );
-    if (invalidItems) {
-      newErrors.items = 'All items must have a description, quantity greater than 0, and price greater than 0';
+    // PHASE 1 FIX: Enhanced item validation with specific error messages
+    if (formData.items.length === 0) {
+      newErrors.items = 'At least one item is required';
+    } else {
+      const emptyDescriptions = formData.items.some(item => !item.description.trim());
+      const invalidQuantities = formData.items.some(item => !item.quantity || parseFloat(item.quantity) <= 0);
+      const invalidPrices = formData.items.some(item => !item.unitPrice || parseFloat(item.unitPrice) <= 0);
+      
+      if (emptyDescriptions) {
+        newErrors.items = '⚠️ All items must have a description';
+      } else if (invalidQuantities) {
+        newErrors.items = '⚠️ All items must have a quantity greater than 0';
+      } else if (invalidPrices) {
+        newErrors.items = '⚠️ All items must have a price greater than 0';
+      }
+    }
+
+    // PHASE 1 FIX: Validate total is not 0
+    if (calculateTotal() <= 0) {
+      newErrors.submit = '⚠️ Invoice total must be greater than 0. Please add items with valid quantities and prices.';
     }
 
     setErrors(newErrors);
@@ -500,9 +532,15 @@ function CreateInvoice() {
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Create Invoice</h1>
           )}
 
+          {/* PHASE 1 FIX: Enhanced error display */}
           {errors.submit && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {errors.submit}
+            <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                </svg>
+                <p className="text-sm font-medium text-red-800">{errors.submit}</p>
+              </div>
             </div>
           )}
 
@@ -535,7 +573,7 @@ function CreateInvoice() {
                 >
                   {CURRENCIES.map((curr) => (
                     <option key={curr.code} value={curr.code}>
-                      {curr.code} - {curr.name}
+                      {curr.symbol} - {curr.name}
                     </option>
                   ))}
                 </select>
@@ -557,7 +595,7 @@ function CreateInvoice() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Due Date
+                  Due Date *
                 </label>
                 <input
                   type="date"
@@ -565,7 +603,7 @@ function CreateInvoice() {
                   value={formData.dueDate}
                   onChange={handleChange}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.dueDate ? 'border-red-500' : 'border-gray-300'
+                    errors.dueDate ? 'border-red-500 bg-red-50' : 'border-gray-300'
                   }`}
                   required
                 />
@@ -579,7 +617,7 @@ function CreateInvoice() {
             <div className="border-t border-gray-200 pt-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Client Information</h2>
               
-              {/* NEW: Client Dropdown Section */}
+              {/* Client Dropdown Section */}
               {!selectedClient ? (
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -630,7 +668,7 @@ function CreateInvoice() {
                   </p>
                 </div>
               ) : (
-                /* NEW: Selected Client Display */
+                /* Selected Client Display */
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -673,7 +711,7 @@ function CreateInvoice() {
                     onChange={handleChange}
                     disabled={!!selectedClient}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.clientName ? 'border-red-500' : 'border-gray-300'
+                      errors.clientName ? 'border-red-500 bg-red-50' : 'border-gray-300'
                     } ${selectedClient ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     required
                   />
@@ -693,7 +731,7 @@ function CreateInvoice() {
                     onChange={handleChange}
                     disabled={!!selectedClient}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.clientEmail ? 'border-red-500' : 'border-gray-300'
+                      errors.clientEmail ? 'border-red-500 bg-red-50' : 'border-gray-300'
                     } ${selectedClient ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     required
                   />
@@ -713,7 +751,7 @@ function CreateInvoice() {
                     disabled={!!selectedClient}
                     rows="3"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.clientAddress ? 'border-red-500' : 'border-gray-300'
+                      errors.clientAddress ? 'border-red-500 bg-red-50' : 'border-gray-300'
                     } ${selectedClient ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     required
                   />
@@ -737,9 +775,15 @@ function CreateInvoice() {
                 </button>
               </div>
               
+              {/* PHASE 1 FIX: Enhanced error display for items */}
               {errors.items && (
-                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                  {errors.items}
+                <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                    </svg>
+                    <p className="text-sm font-medium text-red-800">{errors.items}</p>
+                  </div>
                 </div>
               )}
               
@@ -749,7 +793,7 @@ function CreateInvoice() {
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                       <div className="md:col-span-5">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Description
+                          Description *
                         </label>
                         
                         {/* Product Search Dropdown */}
@@ -800,7 +844,7 @@ function CreateInvoice() {
                             handleItemChange(index, 'description', e.target.value)
                           }
                           className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            !item.description.trim() ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                            !item.description.trim() && errors.items ? 'border-red-500 bg-red-50' : 'border-gray-300'
                           }`}
                           placeholder="Item description or use search above"
                           required
@@ -809,7 +853,7 @@ function CreateInvoice() {
 
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Quantity
+                          Quantity *
                         </label>
                         <input
                           type="text"
@@ -821,7 +865,7 @@ function CreateInvoice() {
                           }
                           placeholder="0"
                           className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            !item.quantity || parseFloat(item.quantity) <= 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                            (!item.quantity || parseFloat(item.quantity) <= 0) && errors.items ? 'border-red-500 bg-red-50' : 'border-gray-300'
                           }`}
                           required
                         />
@@ -829,7 +873,7 @@ function CreateInvoice() {
 
                       <div className="md:col-span-3">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Unit Price ({getCurrencySymbol()})
+                          Unit Price ({getCurrencySymbol()}) *
                         </label>
                         <input
                           type="text"
@@ -840,7 +884,7 @@ function CreateInvoice() {
                           }
                           placeholder="0.00"
                           className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            !item.unitPrice || parseFloat(item.unitPrice) <= 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                            (!item.unitPrice || parseFloat(item.unitPrice) <= 0) && errors.items ? 'border-red-500 bg-red-50' : 'border-gray-300'
                           }`}
                           required
                         />

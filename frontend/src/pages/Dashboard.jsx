@@ -185,14 +185,19 @@ const Dashboard = () => {
     }
   };
 
+  // PHASE 1 FIX: Split CFA into XOF and XAF with proper currency symbols
   const getCurrencySymbol = (currency) => {
     const symbols = {
-      'RWF': 'RFW',
-      'KES': 'KSH',
-      'NGN': 'NGN',
-      'CFA': 'CFA',
+      'RWF': 'RWF',
+      'KES': 'KES',
+      'NGN': '₦',
+      'XOF': 'CFA', // West Africa CFA
+      'XAF': 'FCFA', // Central Africa CFA
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
     };
-    return symbols[currency] || 'USD';
+    return symbols[currency] || currency;
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
@@ -542,9 +547,10 @@ const Dashboard = () => {
             </button>
           )}
 
+          {/* PHASE 1 FIX: Safer delete button - gray by default, red on hover, with separator */}
           <button
             onClick={() => handleDeleteClick(invoices.find(inv => inv._id === openDropdown))}
-            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors text-left border-t border-gray-100 mt-1 pt-3"
             aria-label="Delete invoice"
           >
             <TrashIcon className="w-4 h-4" aria-hidden="true" />
