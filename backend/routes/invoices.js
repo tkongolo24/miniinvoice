@@ -131,6 +131,55 @@ router.patch('/:id/status', auth, async (req, res) => {
   }
 });
 
+// PHASE 2: Mark invoice as paid with payment details
+router.patch('/:id/payment', auth, async (req, res) => {
+  try {
+    const { status, paymentDate, paymentMethod, paymentNotes } = req.body;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+    
+    // Validate status
+    if (!['paid', 'unpaid'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Must be paid or unpaid' });
+    }
+
+    // Find invoice
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      userId: req.userId
+    });
+    
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Update payment status and details
+    invoice.status = status;
+    
+    if (status === 'paid') {
+      // Mark as paid - record payment details
+      invoice.paymentDate = paymentDate ? new Date(paymentDate) : new Date();
+      invoice.paymentMethod = paymentMethod || null;
+      invoice.paymentNotes = paymentNotes || '';
+    } else {
+      // Mark as unpaid - clear payment details
+      invoice.paymentDate = null;
+      invoice.paymentMethod = null;
+      invoice.paymentNotes = '';
+    }
+    
+    await invoice.save();
+
+    res.json(invoice);
+  } catch (error) {
+    console.error('Payment status update error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Create invoice
 router.post('/', auth, async (req, res) => {
   try {
