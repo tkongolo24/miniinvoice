@@ -16,6 +16,8 @@ import {
   PlusCircleIcon,
   CheckCircleIcon,
   XCircleIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 // QUICK WIN #4: Date formatter utility
@@ -44,6 +46,10 @@ const Dashboard = () => {
     show: false,
     invoice: null
   });
+  // PHASE 2 TASK 3: Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   // SPRINT 4: Dropdown menu state for actions
   const [openDropdown, setOpenDropdown] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
@@ -260,6 +266,19 @@ const Dashboard = () => {
     }
   };
 
+  // PHASE 2 TASK 3: Clear all filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setDateFrom('');
+    setDateTo('');
+    setFilter('all');
+  };
+
+  // PHASE 2 TASK 3: Check if any filters are active
+  const hasActiveFilters = () => {
+    return searchTerm || dateFrom || dateTo || filter !== 'all';
+  };
+
   // PHASE 1 FIX: Split CFA into XOF and XAF with proper currency symbols
   const getCurrencySymbol = (currency) => {
     const symbols = {
@@ -275,9 +294,45 @@ const Dashboard = () => {
     return symbols[currency] || currency;
   };
 
+  // PHASE 2 TASK 3: Enhanced filtering with search and date range
   const filteredInvoices = invoices.filter((invoice) => {
-    if (filter === 'all') return true;
-    return invoice.status === filter;
+    // Status filter
+    if (filter !== 'all' && invoice.status !== filter) {
+      return false;
+    }
+
+    // Search term filter (invoice number, client name, amount)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const matchesInvoiceNumber = invoice.invoiceNumber?.toLowerCase().includes(search);
+      const matchesClientName = invoice.clientName?.toLowerCase().includes(search);
+      const matchesAmount = invoice.total?.toString().includes(search);
+      
+      if (!matchesInvoiceNumber && !matchesClientName && !matchesAmount) {
+        return false;
+      }
+    }
+
+    // Date from filter
+    if (dateFrom) {
+      const invoiceDate = new Date(invoice.dateIssued);
+      const fromDate = new Date(dateFrom);
+      if (invoiceDate < fromDate) {
+        return false;
+      }
+    }
+
+    // Date to filter
+    if (dateTo) {
+      const invoiceDate = new Date(invoice.dateIssued);
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999); // Include entire day
+      if (invoiceDate > toDate) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   const stats = {
@@ -444,8 +499,61 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Filter Buttons */}
+        {/* PHASE 2 TASK 3: Search and Filters */}
         <div className="bg-white rounded-lg shadow mb-6">
+          {/* Search Bar */}
+          <div className="p-4 border-b">
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search Input */}
+              <div className="flex-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by invoice#, client, or amount..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Date From */}
+              <div className="sm:w-40">
+                <input
+                  type="date"
+                  placeholder="From date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Date To */}
+              <div className="sm:w-40">
+                <input
+                  type="date"
+                  placeholder="To date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Clear Filters Button */}
+              {hasActiveFilters() && (
+                <button
+                  onClick={clearFilters}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                >
+                  <XMarkIcon className="w-4 h-4" aria-hidden="true" />
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Status Filter Buttons */}
           <div className="p-4 border-b">
             <div className="flex flex-wrap gap-2">
               <button
@@ -479,6 +587,13 @@ const Dashboard = () => {
                 Unpaid ({stats.unpaid})
               </button>
             </div>
+
+            {/* Results Count */}
+            {hasActiveFilters() && (
+              <div className="mt-3 text-sm text-gray-600">
+                Showing {filteredInvoices.length} of {invoices.length} invoices
+              </div>
+            )}
           </div>
 
           {/* Desktop Table View */}
@@ -498,7 +613,9 @@ const Dashboard = () => {
                 {filteredInvoices.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                      No invoices found. Create your first invoice!
+                      {hasActiveFilters() 
+                        ? 'No invoices match your search criteria.' 
+                        : 'No invoices found. Create your first invoice!'}
                     </td>
                   </tr>
                 ) : (
@@ -549,7 +666,9 @@ const Dashboard = () => {
           <div className="md:hidden divide-y divide-gray-200">
             {filteredInvoices.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
-                No invoices found. Create your first invoice!
+                {hasActiveFilters() 
+                  ? 'No invoices match your search criteria.' 
+                  : 'No invoices found. Create your first invoice!'}
               </div>
             ) : (
               filteredInvoices.map((invoice) => (
