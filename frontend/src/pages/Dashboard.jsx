@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ProfileCompleteModal from '../components/ProfileCompleteModal';
+import PaymentModal from '../components/PaymentModal';
 // Heroicons for better, accessible icons
 import {
   UserGroupIcon,
@@ -13,6 +14,8 @@ import {
   TrashIcon,
   EllipsisVerticalIcon,
   PlusCircleIcon,
+  CheckCircleIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline';
 
 // QUICK WIN #4: Date formatter utility
@@ -33,6 +36,11 @@ const Dashboard = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   // QUICK WIN #3: Delete confirmation modal state
   const [deleteConfirm, setDeleteConfirm] = useState({
+    show: false,
+    invoice: null
+  });
+  // PHASE 2: Payment modal state
+  const [paymentModal, setPaymentModal] = useState({
     show: false,
     invoice: null
   });
@@ -135,7 +143,7 @@ const Dashboard = () => {
       const button = event.currentTarget;
       const rect = button.getBoundingClientRect();
       const dropdownWidth = 192; // w-48 = 192px
-      const dropdownHeight = 180; // approximate height (3 items + spacing)
+      const dropdownHeight = 220; // approximate height (4 items + spacing)
       
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
@@ -210,6 +218,48 @@ const Dashboard = () => {
     }
   };
 
+  // PHASE 2: Show payment modal
+  const handlePaymentClick = (invoice) => {
+    setPaymentModal({
+      show: true,
+      invoice: invoice
+    });
+    setOpenDropdown(null);
+  };
+
+  // PHASE 2: Handle payment confirmation
+  const confirmPayment = async (paymentData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const updateData = paymentData.status === 'unpaid' 
+        ? { status: 'unpaid' }
+        : { 
+            status: 'paid', 
+            paymentDate: paymentData.paymentDate,
+            paymentMethod: paymentData.paymentMethod,
+            paymentNotes: paymentData.paymentNotes 
+          };
+
+      const response = await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/invoices/${paymentModal.invoice._id}/payment`,
+        updateData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Update the invoice in the list
+      setInvoices(invoices.map((inv) => 
+        inv._id === paymentModal.invoice._id ? response.data : inv
+      ));
+      
+      setPaymentModal({ show: false, invoice: null });
+    } catch (err) {
+      alert('Failed to update payment status. Please try again.');
+      console.error('Payment update error:', err);
+    }
+  };
+
   // PHASE 1 FIX: Split CFA into XOF and XAF with proper currency symbols
   const getCurrencySymbol = (currency) => {
     const symbols = {
@@ -252,6 +302,14 @@ const Dashboard = () => {
       <ProfileCompleteModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
+      />
+
+      {/* PHASE 2: Payment Modal */}
+      <PaymentModal
+        isOpen={paymentModal.show}
+        invoice={paymentModal.invoice}
+        onClose={() => setPaymentModal({ show: false, invoice: null })}
+        onConfirm={confirmPayment}
       />
 
       {/* QUICK WIN #3: Delete Confirmation Modal */}
@@ -559,6 +617,29 @@ const Dashboard = () => {
             <EyeIcon className="w-4 h-4" aria-hidden="true" />
             View Invoice
           </Link>
+
+          {/* PHASE 2: Payment status toggle */}
+          <button
+            onClick={() => handlePaymentClick(invoices.find(inv => inv._id === openDropdown))}
+            className={`flex items-center gap-2 w-full px-4 py-2.5 text-sm transition-colors text-left ${
+              invoices.find(inv => inv._id === openDropdown)?.status === 'paid'
+                ? 'text-orange-600 hover:bg-orange-50'
+                : 'text-green-600 hover:bg-green-50'
+            }`}
+            aria-label={invoices.find(inv => inv._id === openDropdown)?.status === 'paid' ? 'Mark as unpaid' : 'Mark as paid'}
+          >
+            {invoices.find(inv => inv._id === openDropdown)?.status === 'paid' ? (
+              <>
+                <XCircleIcon className="w-4 h-4" aria-hidden="true" />
+                Mark Unpaid
+              </>
+            ) : (
+              <>
+                <CheckCircleIcon className="w-4 h-4" aria-hidden="true" />
+                Mark as Paid
+              </>
+            )}
+          </button>
 
           {/* Only show Edit for unpaid invoices */}
           {invoices.find(inv => inv._id === openDropdown)?.status === 'unpaid' && (
