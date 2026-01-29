@@ -43,7 +43,7 @@ function App() {
               <Route path="/magic-signin" element={<MagicSignin />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/i/:shareToken" element={<PublicInvoice />} />
-              <Route path="/client-onboarding/:token" element={<ClientOnboarding />} />
+              <Route path="/onboarding/:token" element={<ClientOnboarding />} />
 
               {/* Protected routes */}
               <Route
