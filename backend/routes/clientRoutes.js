@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const Client = require('../models/client');
-const ClientOnboarding = require('../models/clientonboarding');
+const Client = require('../models/Client');
+const ClientOnboarding = require('../models/ClientOnboarding');
 const Invoice = require('../models/invoice');
 
 // ==================================================
