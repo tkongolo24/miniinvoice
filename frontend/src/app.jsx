@@ -18,6 +18,7 @@ import ResetPassword from './pages/ResetPassword';
 import LandingPage from './pages/LandingPage';
 import Clients from './pages/Clients';
 import Products from './pages/Products';
+import ClientOnboarding from './pages/ClientOnboarding';
 
 inject();
 
@@ -42,6 +43,7 @@ function App() {
               <Route path="/magic-signin" element={<MagicSignin />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/i/:shareToken" element={<PublicInvoice />} />
+              <Route path="/client-onboarding/:token" element={<ClientOnboarding />} />
 
               {/* Protected routes */}
               <Route
