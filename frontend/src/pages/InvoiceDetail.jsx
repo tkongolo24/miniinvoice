@@ -501,37 +501,41 @@ ${companySettings?.companyName || ''}`;
     doc.text(`${currency} ${grossPrice.toFixed(2)}`, rightAlign, finalY, { align: 'right' });
     
     // Discount (if applicable)
+    let currentY = finalY;
+    
     if (discount > 0) {
       doc.setTextColor(220, 38, 38);
       const discountLabel = invoice.discountType === 'percentage' 
         ? `Discount (${invoice.discount}%):`
         : 'Discount:';
-      doc.text(discountLabel, leftAlign, finalY + 10);
-      doc.text(`-${currency} ${discount.toFixed(2)}`, rightAlign, finalY + 10, { align: 'right' });
+      doc.text(discountLabel, leftAlign, currentY + 10);
+      doc.text(`-${currency} ${discount.toFixed(2)}`, rightAlign, currentY + 10, { align: 'right' });
       doc.setTextColor(0, 0, 0);
+      
+      // Subtotal after discount (only show when discount exists)
+      doc.setFont('helvetica', 'bold');
+      doc.text('Subtotal after discount:', leftAlign, currentY + 20);
+      doc.text(`${currency} ${discountedGross.toFixed(2)}`, rightAlign, currentY + 20, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      
+      currentY = currentY + 30;
+    } else {
+      currentY = currentY + 10;
     }
     
-    // Subtotal after discount
-    const subtotalLine = discount > 0 ? finalY + 20 : finalY + 10;
-    doc.setFont('helvetica', 'bold');
-    doc.text('Subtotal after discount:', leftAlign, subtotalLine);
-    doc.text(`${currency} ${discountedGross.toFixed(2)}`, rightAlign, subtotalLine, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    
     // Net Amount
-    const netLine = subtotalLine + 10;
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text('Net Amount (excl. VAT):', leftAlign, netLine);
-    doc.text(`${currency} ${netAmount.toFixed(2)}`, rightAlign, netLine, { align: 'right' });
+    doc.text('Net Amount (excl. VAT):', leftAlign, currentY);
+    doc.text(`${currency} ${netAmount.toFixed(2)}`, rightAlign, currentY, { align: 'right' });
     
     // VAT
-    doc.text(`VAT (${invoice.taxRate || 18}%):`, leftAlign, netLine + 7);
-    doc.text(`${currency} ${tax.toFixed(2)}`, rightAlign, netLine + 7, { align: 'right' });
+    doc.text(`VAT (${invoice.taxRate || 18}%):`, leftAlign, currentY + 7);
+    doc.text(`${currency} ${tax.toFixed(2)}`, rightAlign, currentY + 7, { align: 'right' });
     doc.setTextColor(0, 0, 0);
     
     // Separator line
-    const separatorLine = netLine + 12;
+    const separatorLine = currentY + 12;
     doc.setDrawColor(37, 99, 235);
     doc.setLineWidth(0.5);
     doc.line(leftAlign, separatorLine, rightAlign, separatorLine);
