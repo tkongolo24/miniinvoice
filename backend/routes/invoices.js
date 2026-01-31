@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const { sendInvoiceEmail } = require('../services/emailService');
 const { generateInvoiceNumber } = require('../utils/invoiceNumberGenerator'); 
 
-// Export invoices as CSV
+// Export invoices as CSV (Basic)
 router.get('/export/csv', auth, async (req, res) => {
   try {
     const { status, startDate, endDate } = req.query;
@@ -98,6 +98,297 @@ router.get('/export/csv', auth, async (req, res) => {
     console.error('Error exporting CSV:', error);
     res.status(500).json({
       message: 'Failed to export invoices',
+      error: error.message,
+    });
+  }
+});
+
+// Export comprehensive tax report as CSV
+router.get('/export/tax-report', auth, async (req, res) => {
+  try {
+    const { year } = req.query;
+    
+    // Build query for the year
+    const query = { userId: req.userId };
+    
+    if (year) {
+      const startOfYear = new Date(`${year}-01-01`);
+      const endOfYear = new Date(`${year}-12-31`);
+      query.dateIssued = { $gte: startOfYear, $lte: endOfYear };
+    }
+
+    // Fetch all invoices
+    const invoices = await Invoice.find(query).sort({ dateIssued: 1 }).lean();
+
+    if (invoices.length === 0) {
+      return res.status(404).json({ message: 'No invoices found for tax report' });
+    }
+
+    const sections = [];
+
+    // ==========================================
+    // SECTION 1: INVOICE SUMMARY
+    // ==========================================
+    sections.push('=== INVOICE SUMMARY ===');
+    sections.push([
+      'Invoice Number',
+      'Date Issued',
+      'Due Date',
+      'Client Name',
+      'Client Email',
+      'Status',
+      'Payment Date',
+      'Payment Method',
+      'Currency',
+      'Subtotal',
+      'Tax Rate (%)',
+      'Tax Amount',
+      'Discount (%)',
+      'Discount Amount',
+      'Total Amount',
+      'Notes'
+    ].join(','));
+
+    invoices.forEach(inv => {
+      const subtotal = inv.subtotal || 0;
+      const taxRate = inv.taxRate || 0;
+      const discountRate = inv.discountRate || 0;
+      const taxAmount = (subtotal * taxRate) / 100;
+      const discountAmount = (subtotal * discountRate) / 100;
+
+      sections.push([
+        `"${inv.invoiceNumber || 'N/A'}"`,
+        `"${new Date(inv.dateIssued).toLocaleDateString()}"`,
+        `"${new Date(inv.dueDate).toLocaleDateString()}"`,
+        `"${(inv.clientName || '').replace(/"/g, '""')}"`,
+        `"${inv.clientEmail || ''}"`,
+        `"${inv.status}"`,
+        `"${inv.paymentDate ? new Date(inv.paymentDate).toLocaleDateString() : 'Not Paid'}"`,
+        `"${inv.paymentMethod || 'N/A'}"`,
+        `"${inv.currency}"`,
+        subtotal.toFixed(2),
+        taxRate.toFixed(2),
+        taxAmount.toFixed(2),
+        discountRate.toFixed(2),
+        discountAmount.toFixed(2),
+        (inv.total || 0).toFixed(2),
+        `"${(inv.notes || '').replace(/"/g, '""')}"`
+      ].join(','));
+    });
+
+    sections.push(''); // Empty line
+
+    // ==========================================
+    // SECTION 2: MONTHLY REVENUE SUMMARY
+    // ==========================================
+    sections.push('=== MONTHLY REVENUE SUMMARY ===');
+    sections.push(['Month', 'Total Invoices', 'Total Revenue', 'Total Tax Collected', 'Paid Amount', 'Outstanding'].join(','));
+
+    const monthlyData = {};
+    invoices.forEach(inv => {
+      const month = new Date(inv.dateIssued).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      if (!monthlyData[month]) {
+        monthlyData[month] = {
+          count: 0,
+          revenue: 0,
+          tax: 0,
+          paid: 0,
+          outstanding: 0
+        };
+      }
+      
+      const subtotal = inv.subtotal || 0;
+      const taxRate = inv.taxRate || 0;
+      const taxAmount = (subtotal * taxRate) / 100;
+      const total = inv.total || 0;
+
+      monthlyData[month].count += 1;
+      monthlyData[month].revenue += total;
+      monthlyData[month].tax += taxAmount;
+      
+      if (inv.status === 'paid') {
+        monthlyData[month].paid += total;
+      } else {
+        monthlyData[month].outstanding += total;
+      }
+    });
+
+    Object.entries(monthlyData).forEach(([month, data]) => {
+      sections.push([
+        `"${month}"`,
+        data.count,
+        data.revenue.toFixed(2),
+        data.tax.toFixed(2),
+        data.paid.toFixed(2),
+        data.outstanding.toFixed(2)
+      ].join(','));
+    });
+
+    sections.push(''); // Empty line
+
+    // ==========================================
+    // SECTION 3: CLIENT SUMMARY
+    // ==========================================
+    sections.push('=== CLIENT SUMMARY ===');
+    sections.push(['Client Name', 'Client Email', 'Total Invoices', 'Total Invoiced', 'Total Paid', 'Outstanding'].join(','));
+
+    const clientData = {};
+    invoices.forEach(inv => {
+      const clientKey = inv.clientEmail || inv.clientName;
+      if (!clientData[clientKey]) {
+        clientData[clientKey] = {
+          name: inv.clientName,
+          email: inv.clientEmail,
+          count: 0,
+          invoiced: 0,
+          paid: 0,
+          outstanding: 0
+        };
+      }
+
+      const total = inv.total || 0;
+      clientData[clientKey].count += 1;
+      clientData[clientKey].invoiced += total;
+      
+      if (inv.status === 'paid') {
+        clientData[clientKey].paid += total;
+      } else {
+        clientData[clientKey].outstanding += total;
+      }
+    });
+
+    Object.values(clientData).forEach(client => {
+      sections.push([
+        `"${(client.name || '').replace(/"/g, '""')}"`,
+        `"${client.email || ''}"`,
+        client.count,
+        client.invoiced.toFixed(2),
+        client.paid.toFixed(2),
+        client.outstanding.toFixed(2)
+      ].join(','));
+    });
+
+    sections.push(''); // Empty line
+
+    // ==========================================
+    // SECTION 4: TAX BREAKDOWN
+    // ==========================================
+    sections.push('=== TAX BREAKDOWN BY RATE ===');
+    sections.push(['Tax Rate (%)', 'Number of Invoices', 'Taxable Amount', 'Tax Collected'].join(','));
+
+    const taxData = {};
+    invoices.forEach(inv => {
+      const taxRate = inv.taxRate || 0;
+      if (!taxData[taxRate]) {
+        taxData[taxRate] = {
+          count: 0,
+          taxableAmount: 0,
+          taxCollected: 0
+        };
+      }
+
+      const subtotal = inv.subtotal || 0;
+      const taxAmount = (subtotal * taxRate) / 100;
+
+      taxData[taxRate].count += 1;
+      taxData[taxRate].taxableAmount += subtotal;
+      taxData[taxRate].taxCollected += taxAmount;
+    });
+
+    Object.entries(taxData).forEach(([rate, data]) => {
+      sections.push([
+        rate,
+        data.count,
+        data.taxableAmount.toFixed(2),
+        data.taxCollected.toFixed(2)
+      ].join(','));
+    });
+
+    sections.push(''); // Empty line
+
+    // ==========================================
+    // SECTION 5: DETAILED LINE ITEMS
+    // ==========================================
+    sections.push('=== DETAILED LINE ITEMS ===');
+    sections.push(['Invoice Number', 'Date', 'Client', 'Item Description', 'Quantity', 'Unit Price', 'Line Total', 'Taxable'].join(','));
+
+    invoices.forEach(inv => {
+      if (inv.items && inv.items.length > 0) {
+        inv.items.forEach(item => {
+          const lineTotal = (item.quantity || 0) * (item.unitPrice || 0);
+          sections.push([
+            `"${inv.invoiceNumber || 'N/A'}"`,
+            `"${new Date(inv.dateIssued).toLocaleDateString()}"`,
+            `"${(inv.clientName || '').replace(/"/g, '""')}"`,
+            `"${(item.description || '').replace(/"/g, '""')}"`,
+            item.quantity || 0,
+            (item.unitPrice || 0).toFixed(2),
+            lineTotal.toFixed(2),
+            `"${item.taxable ? 'Yes' : 'No'}"`
+          ].join(','));
+        });
+      }
+    });
+
+    sections.push(''); // Empty line
+
+    // ==========================================
+    // SECTION 6: YEAR-END TOTALS
+    // ==========================================
+    sections.push('=== YEAR-END TOTALS ===');
+    
+    const totals = invoices.reduce((acc, inv) => {
+      const subtotal = inv.subtotal || 0;
+      const taxRate = inv.taxRate || 0;
+      const taxAmount = (subtotal * taxRate) / 100;
+      const total = inv.total || 0;
+
+      acc.totalInvoices += 1;
+      acc.totalRevenue += total;
+      acc.totalTax += taxAmount;
+      
+      if (inv.status === 'paid') {
+        acc.totalPaid += total;
+        acc.paidInvoices += 1;
+      } else {
+        acc.totalOutstanding += total;
+        acc.unpaidInvoices += 1;
+      }
+      
+      return acc;
+    }, {
+      totalInvoices: 0,
+      paidInvoices: 0,
+      unpaidInvoices: 0,
+      totalRevenue: 0,
+      totalTax: 0,
+      totalPaid: 0,
+      totalOutstanding: 0
+    });
+
+    sections.push(['Metric', 'Value'].join(','));
+    sections.push(['Total Invoices', totals.totalInvoices].join(','));
+    sections.push(['Paid Invoices', totals.paidInvoices].join(','));
+    sections.push(['Unpaid Invoices', totals.unpaidInvoices].join(','));
+    sections.push(['Total Revenue', totals.totalRevenue.toFixed(2)].join(','));
+    sections.push(['Total Tax Collected', totals.totalTax.toFixed(2)].join(','));
+    sections.push(['Total Paid', totals.totalPaid.toFixed(2)].join(','));
+    sections.push(['Total Outstanding', totals.totalOutstanding.toFixed(2)].join(','));
+
+    // Combine all sections
+    const csv = sections.join('\n');
+
+    // Set headers for file download
+    const currentYear = year || new Date().getFullYear();
+    const filename = `tax_report_${currentYear}_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting tax report:', error);
+    res.status(500).json({
+      message: 'Failed to export tax report',
       error: error.message,
     });
   }

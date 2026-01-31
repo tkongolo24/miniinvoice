@@ -296,6 +296,36 @@ const Dashboard = () => {
     }
   };
 
+  const handleExportTaxReport = async () => {
+    try {
+      setExporting(true);
+      
+      const token = localStorage.getItem('token');
+      const currentYear = new Date().getFullYear();
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/invoices/export/tax-report?year=${currentYear}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob',
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `tax_report_${currentYear}_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to export tax report');
+      console.error('Error exporting tax report:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // PHASE 2 TASK 3: Clear all filters
   const clearFilters = () => {
     setSearchTerm('');
@@ -483,6 +513,26 @@ const Dashboard = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       Export CSV
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleExportTaxReport}
+                  disabled={exporting || invoices.length === 0}
+                  className="inline-flex items-center justify-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-200 font-medium text-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Export tax report"
+                >
+                  {exporting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Tax Report
                     </>
                   )}
                 </button>
