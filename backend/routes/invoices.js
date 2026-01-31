@@ -9,6 +9,100 @@ const crypto = require('crypto');
 const { sendInvoiceEmail } = require('../services/emailService');
 const { generateInvoiceNumber } = require('../utils/invoiceNumberGenerator'); 
 
+// Export invoices as CSV
+router.get('/export/csv', auth, async (req, res) => {
+  try {
+    const { status, startDate, endDate } = req.query;
+
+    // Build query
+    const query = { userId: req.userId };
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (startDate || endDate) {
+      query.dateIssued = {};
+      if (startDate) query.dateIssued.$gte = new Date(startDate);
+      if (endDate) query.dateIssued.$lte = new Date(endDate);
+    }
+
+    // Fetch invoices
+    const invoices = await Invoice.find(query)
+      .sort({ dateIssued: -1 })
+      .lean();
+
+    if (invoices.length === 0) {
+      return res.status(404).json({ message: 'No invoices found to export' });
+    }
+
+    // Create CSV headers
+    const csvHeaders = [
+      'Invoice Number',
+      'Client Name',
+      'Client Email',
+      'Date Issued',
+      'Due Date',
+      'Status',
+      'Currency',
+      'Subtotal',
+      'Tax Rate (%)',
+      'Tax Amount',
+      'Discount Rate (%)',
+      'Discount Amount',
+      'Total',
+      'Notes',
+    ].join(',');
+
+    // Create CSV rows
+    const csvRows = invoices.map((invoice) => {
+      const clientName = invoice.clientName || 'N/A';
+      const clientEmail = invoice.clientEmail || 'N/A';
+      
+      // Calculate amounts
+      const subtotal = invoice.subtotal || 0;
+      const taxRate = invoice.taxRate || 0;
+      const discountRate = invoice.discountRate || 0;
+      
+      const taxAmount = (subtotal * taxRate) / 100;
+      const discountAmount = (subtotal * discountRate) / 100;
+
+      return [
+        `"${invoice.invoiceNumber || 'N/A'}"`,
+        `"${clientName.replace(/"/g, '""')}"`,
+        `"${clientEmail}"`,
+        `"${new Date(invoice.dateIssued).toLocaleDateString()}"`,
+        `"${new Date(invoice.dueDate).toLocaleDateString()}"`,
+        `"${invoice.status}"`,
+        `"${invoice.currency}"`,
+        subtotal.toFixed(2),
+        taxRate.toFixed(2),
+        taxAmount.toFixed(2),
+        discountRate.toFixed(2),
+        discountAmount.toFixed(2),
+        (invoice.total || 0).toFixed(2),
+        `"${(invoice.notes || '').replace(/"/g, '""')}"`,
+      ].join(',');
+    });
+
+    // Combine headers and rows
+    const csv = [csvHeaders, ...csvRows].join('\n');
+
+    // Set headers for file download
+    const filename = `invoices_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting CSV:', error);
+    res.status(500).json({
+      message: 'Failed to export invoices',
+      error: error.message,
+    });
+  }
+});
+
 // Get public invoice by share token (no login required)
 router.get('/public/:shareToken', async (req, res) => {
   try {

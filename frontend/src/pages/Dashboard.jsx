@@ -54,6 +54,7 @@ const Dashboard = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef(null);
+  const [exporting, setExporting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -266,6 +267,35 @@ const Dashboard = () => {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      setExporting(true);
+      
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/invoices/export/csv`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob',
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoices_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to export CSV');
+      console.error('Error exporting CSV:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // PHASE 2 TASK 3: Clear all filters
   const clearFilters = () => {
     setSearchTerm('');
@@ -427,14 +457,36 @@ const Dashboard = () => {
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your invoices</p>
               </div>
-              <Link
-                to="/create-invoice"
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-center shadow-sm"
-                aria-label="Create new invoice"
-              >
-                <PlusCircleIcon className="w-5 h-5" aria-hidden="true" />
-                New Invoice
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  to="/create-invoice"
+                  className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-center shadow-sm"
+                  aria-label="Create new invoice"
+                >
+                  <PlusCircleIcon className="w-5 h-5" aria-hidden="true" />
+                  New Invoice
+                </Link>
+                <button
+                  onClick={handleExportCSV}
+                  disabled={exporting || invoices.length === 0}
+                  className="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200 font-medium text-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Export invoices to CSV"
+                >
+                  {exporting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Export CSV
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Bottom Row: Navigation Links */}
