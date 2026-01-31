@@ -55,6 +55,7 @@ const Dashboard = () => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef(null);
   const [exporting, setExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -270,6 +271,7 @@ const Dashboard = () => {
   const handleExportCSV = async () => {
     try {
       setExporting(true);
+      setShowExportModal(false);
       
       const token = localStorage.getItem('token');
       const response = await axios.get(
@@ -299,6 +301,7 @@ const Dashboard = () => {
   const handleExportTaxReport = async () => {
     try {
       setExporting(true);
+      setShowExportModal(false);
       
       const token = localStorage.getItem('token');
       const currentYear = new Date().getFullYear();
@@ -477,6 +480,97 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Export Options Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+            <div className="mb-6">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-6 h-6 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+                Export Data
+              </h3>
+              <p className="text-gray-600 text-center text-sm">
+                Choose the type of export you need
+              </p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {/* Simple CSV Export */}
+              <button
+                onClick={handleExportCSV}
+                disabled={exporting}
+                className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 mb-1">Simple Invoice List</h4>
+                    <p className="text-sm text-gray-600">
+                      Quick export of all invoices with basic details. Perfect for simple record-keeping.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Includes: Invoice#, Client, Date, Amount, Tax, Status
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Tax Report Export */}
+              <button
+                onClick={handleExportTaxReport}
+                disabled={exporting}
+                className="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Tax Report ({new Date().getFullYear()})
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Comprehensive report with monthly summaries, tax breakdown, and client details. Perfect for tax filing and accounting.
+                    </p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Includes: 6 detailed sections (Invoice Summary, Monthly Summary, Client Summary, Tax Breakdown, Line Items, Year Totals)
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowExportModal(false)}
+              disabled={exporting}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -487,56 +581,14 @@ const Dashboard = () => {
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your invoices</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link
-                  to="/create-invoice"
-                  className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-center shadow-sm"
-                  aria-label="Create new invoice"
-                >
-                  <PlusCircleIcon className="w-5 h-5" aria-hidden="true" />
-                  New Invoice
-                </Link>
-                <button
-                  onClick={handleExportCSV}
-                  disabled={exporting || invoices.length === 0}
-                  className="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200 font-medium text-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Export invoices to CSV"
-                >
-                  {exporting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Export CSV
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleExportTaxReport}
-                  disabled={exporting || invoices.length === 0}
-                  className="inline-flex items-center justify-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-200 font-medium text-center shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Export tax report"
-                >
-                  {exporting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Tax Report
-                    </>
-                  )}
-                </button>
-              </div>
+              <Link
+                to="/create-invoice"
+                className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-center shadow-sm"
+                aria-label="Create new invoice"
+              >
+                <PlusCircleIcon className="w-5 h-5" aria-hidden="true" />
+                New Invoice
+              </Link>
             </div>
 
             {/* Bottom Row: Navigation Links */}
@@ -565,6 +617,17 @@ const Dashboard = () => {
                 <BuildingOfficeIcon className="w-5 h-5" aria-hidden="true" />
                 Company Profile
               </Link>
+              <button
+                onClick={() => setShowExportModal(true)}
+                disabled={invoices.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Export data"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export CSV
+              </button>
               <button
                 onClick={handleLogout}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm ml-auto"
