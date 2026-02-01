@@ -19,6 +19,9 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   Bars3Icon,
+  DocumentTextIcon,
+  ChartBarIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
 // QUICK WIN #4: Date formatter utility
@@ -519,9 +522,7 @@ const Dashboard = () => {
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <DocumentTextIcon className="w-5 h-5 text-green-600" aria-hidden="true" />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900 mb-1">Simple Invoice List</h4>
@@ -543,9 +544,7 @@ const Dashboard = () => {
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <ChartBarIcon className="w-5 h-5 text-purple-600" aria-hidden="true" />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900 mb-1">
@@ -638,9 +637,7 @@ const Dashboard = () => {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Export data"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <ArrowDownTrayIcon className="w-5 h-5" aria-hidden="true" />
                 Export CSV
               </button>
               <Link
@@ -715,9 +712,7 @@ const Dashboard = () => {
                 disabled={invoices.length === 0}
                 className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-left"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <ArrowDownTrayIcon className="w-5 h-5" aria-hidden="true" />
                 Export CSV
               </button>
               
@@ -755,18 +750,18 @@ const Dashboard = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-            <p className="text-sm text-gray-600 mb-1">Total Invoices</p>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stats.total}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-5 border-l-4 border-blue-600">
+            <p className="text-xs uppercase tracking-wide text-gray-600 font-medium mb-2">Total Invoices</p>
+            <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-            <p className="text-sm text-gray-600 mb-1">Paid</p>
-            <p className="text-2xl sm:text-3xl font-bold text-green-600">{stats.paid}</p>
+          <div className="bg-white rounded-lg shadow p-5 border-l-4 border-green-600">
+            <p className="text-xs uppercase tracking-wide text-gray-600 font-medium mb-2">Paid</p>
+            <p className="text-3xl font-bold text-green-600">{stats.paid}</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-            <p className="text-sm text-gray-600 mb-1">Unpaid</p>
-            <p className="text-2xl sm:text-3xl font-bold text-orange-600">{stats.unpaid}</p>
+          <div className="bg-white rounded-lg shadow p-5 border-l-4 border-orange-600">
+            <p className="text-xs uppercase tracking-wide text-gray-600 font-medium mb-2">Unpaid</p>
+            <p className="text-3xl font-bold text-orange-600">{stats.unpaid}</p>
           </div>
         </div>
 
@@ -774,9 +769,9 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow mb-6">
           {/* Search Bar */}
           <div className="p-4 border-b">
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search Input */}
-              <div className="flex-1 relative">
+            <div className="flex flex-col gap-3">
+              {/* Search Input - Full Width on Mobile */}
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
@@ -785,42 +780,45 @@ const Dashboard = () => {
                   placeholder="Search by invoice#, client, or amount..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="block w-full pl-10 pr-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400"
                 />
               </div>
 
-              {/* Date From */}
-              <div className="sm:w-40">
-                <input
-                  type="date"
-                  placeholder="From date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              {/* Date Filters Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {/* Date From */}
+                <div className="relative">
+                  <input
+                    type="date"
+                    placeholder="From date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="block w-full px-3 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
 
-              {/* Date To */}
-              <div className="sm:w-40">
-                <input
-                  type="date"
-                  placeholder="To date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+                {/* Date To */}
+                <div className="relative">
+                  <input
+                    type="date"
+                    placeholder="To date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="block w-full px-3 py-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
 
-              {/* Clear Filters Button */}
-              {hasActiveFilters() && (
-                <button
-                  onClick={clearFilters}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
-                >
-                  <XMarkIcon className="w-4 h-4" aria-hidden="true" />
-                  Clear
-                </button>
-              )}
+                {/* Clear Filters Button */}
+                {hasActiveFilters() && (
+                  <button
+                    onClick={clearFilters}
+                    className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                  >
+                    <XMarkIcon className="w-4 h-4" aria-hidden="true" />
+                    Clear Filters
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -829,7 +827,7 @@ const Dashboard = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-sm font-medium transition ${
                   filter === 'all'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -839,7 +837,7 @@ const Dashboard = () => {
               </button>
               <button
                 onClick={() => setFilter('paid')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-sm font-medium transition ${
                   filter === 'paid'
                     ? 'bg-green-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -849,7 +847,7 @@ const Dashboard = () => {
               </button>
               <button
                 onClick={() => setFilter('unpaid')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-lg text-sm font-medium transition ${
                   filter === 'unpaid'
                     ? 'bg-orange-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
