@@ -18,6 +18,7 @@ import {
   XCircleIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
+  Bars3Icon,
 } from '@heroicons/react/24/outline';
 
 // QUICK WIN #4: Date formatter utility
@@ -56,6 +57,7 @@ const Dashboard = () => {
   const dropdownRef = useRef(null);
   const [exporting, setExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -575,15 +577,26 @@ const Dashboard = () => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex flex-col gap-4">
-            {/* Top Row: Title and Primary Action */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
+            {/* Top Row: Title and Actions */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your invoices</p>
               </div>
+              
+              {/* Mobile: Hamburger Menu */}
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="sm:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Toggle menu"
+              >
+                <Bars3Icon className="w-6 h-6 text-gray-700" />
+              </button>
+              
+              {/* Desktop: New Invoice Button */}
               <Link
                 to="/create-invoice"
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-center shadow-sm"
+                className="hidden sm:inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold text-center shadow-lg"
                 aria-label="Create new invoice"
               >
                 <PlusCircleIcon className="w-5 h-5" aria-hidden="true" />
@@ -591,8 +604,18 @@ const Dashboard = () => {
               </Link>
             </div>
 
-            {/* Bottom Row: Navigation Links */}
-            <div className="flex flex-wrap gap-2 sm:gap-3 pb-2">
+            {/* Mobile: New Invoice Button (Full Width) */}
+            <Link
+              to="/create-invoice"
+              className="sm:hidden inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold text-center shadow-lg"
+              aria-label="Create new invoice"
+            >
+              <PlusCircleIcon className="w-5 h-5" aria-hidden="true" />
+              New Invoice
+            </Link>
+
+            {/* Desktop Navigation Links */}
+            <div className="hidden sm:flex flex-wrap gap-2 sm:gap-3 pb-2">
               <Link
                 to="/clients"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm"
@@ -609,14 +632,6 @@ const Dashboard = () => {
                 <CubeIcon className="w-5 h-5" aria-hidden="true" />
                 Products
               </Link>
-              <Link
-                to="/company-profile"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm"
-                aria-label="Edit company profile"
-              >
-                <BuildingOfficeIcon className="w-5 h-5" aria-hidden="true" />
-                Company Profile
-              </Link>
               <button
                 onClick={() => setShowExportModal(true)}
                 disabled={invoices.length === 0}
@@ -628,6 +643,14 @@ const Dashboard = () => {
                 </svg>
                 Export CSV
               </button>
+              <Link
+                to="/company-profile"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm"
+                aria-label="Edit company profile"
+              >
+                <BuildingOfficeIcon className="w-5 h-5" aria-hidden="true" />
+                Company Profile
+              </Link>
               <button
                 onClick={handleLogout}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition duration-200 font-medium text-sm ml-auto"
@@ -640,6 +663,89 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+            onClick={() => setShowMobileMenu(false)}
+          ></div>
+          
+          {/* Slide-out Menu */}
+          <div className="fixed top-0 right-0 h-full w-64 bg-white shadow-2xl z-50 sm:hidden transform transition-transform duration-300 ease-in-out">
+            {/* Menu Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-bold text-gray-900">Menu</h2>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Close menu"
+              >
+                <XMarkIcon className="w-6 h-6 text-gray-700" />
+              </button>
+            </div>
+            
+            {/* Menu Items */}
+            <nav className="p-4 space-y-2">
+              <Link
+                to="/clients"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+              >
+                <UserGroupIcon className="w-5 h-5" />
+                Clients
+              </Link>
+              
+              <Link
+                to="/products"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+              >
+                <CubeIcon className="w-5 h-5" />
+                Products
+              </Link>
+              
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  setShowExportModal(true);
+                }}
+                disabled={invoices.length === 0}
+                className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-left"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export CSV
+              </button>
+              
+              <Link
+                to="/company-profile"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+              >
+                <BuildingOfficeIcon className="w-5 h-5" />
+                Company Profile
+              </Link>
+              
+              <div className="pt-4 mt-4 border-t">
+                <button
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                >
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                  Logout
+                </button>
+              </div>
+            </nav>
+          </div>
+        </>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {error && (
