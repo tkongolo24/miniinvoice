@@ -784,14 +784,13 @@ const Dashboard = () => {
                 />
               </div>
 
-              {/* Date Filters Row */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {/* Date Filters Row - Desktop Only */}
+              <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {/* Date From */}
                 <div className="relative">
                   <label className="block text-xs font-medium text-gray-700 mb-1.5">From Date</label>
                   <input
                     type="date"
-                    placeholder="From date"
                     value={dateFrom}
                     onChange={(e) => setDateFrom(e.target.value)}
                     className="block w-full px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -803,7 +802,6 @@ const Dashboard = () => {
                   <label className="block text-xs font-medium text-gray-700 mb-1.5">To Date</label>
                   <input
                     type="date"
-                    placeholder="To date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
                     className="block w-full px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -814,7 +812,7 @@ const Dashboard = () => {
                 {hasActiveFilters() && (
                   <button
                     onClick={clearFilters}
-                    className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium border-2 border-gray-300"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium border-2 border-gray-300"
                   >
                     <XMarkIcon className="w-4 h-4" aria-hidden="true" />
                     Clear Filters
