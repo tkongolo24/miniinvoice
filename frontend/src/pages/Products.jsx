@@ -4,8 +4,6 @@ import axios from 'axios';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
-  Bars3Icon,
-  XMarkIcon,
   ArrowLeftIcon,
   PencilSquareIcon,
   TrashIcon,
@@ -24,7 +22,6 @@ function Products() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [formData, setFormData] = useState({
@@ -199,13 +196,13 @@ function Products() {
               <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your product catalog</p>
             </div>
 
-            {/* Mobile: Hamburger Menu */}
+            {/* Mobile: Back Button */}
             <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              onClick={() => navigate('/dashboard')}
               className="sm:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              aria-label="Toggle menu"
+              aria-label="Back to dashboard"
             >
-              <Bars3Icon className="w-6 h-6 text-gray-700" />
+              <ArrowLeftIcon className="w-6 h-6 text-gray-700" />
             </button>
 
             {/* Desktop: Action Buttons */}
@@ -251,41 +248,6 @@ function Products() {
           </div>
         </div>
       </div>
-
-      {/* Mobile Menu Overlay */}
-      {showMobileMenu && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
-            onClick={() => setShowMobileMenu(false)}
-          ></div>
-          
-          <div className="fixed top-0 right-0 h-full w-64 bg-white shadow-2xl z-50 sm:hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-bold text-gray-900">Menu</h2>
-              <button
-                onClick={() => setShowMobileMenu(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <XMarkIcon className="w-6 h-6 text-gray-700" />
-              </button>
-            </div>
-            
-            <nav className="p-4">
-              <button
-                onClick={() => {
-                  setShowMobileMenu(false);
-                  navigate('/dashboard');
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
-              >
-                <ArrowLeftIcon className="w-5 h-5" />
-                Back to Dashboard
-              </button>
-            </nav>
-          </div>
-        </>
-      )}
 
       {/* Products List */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
