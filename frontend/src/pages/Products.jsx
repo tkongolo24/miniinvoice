@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import {
+  MagnifyingGlassIcon,
+  PlusIcon,
+  Bars3Icon,
+  XMarkIcon,
+  ArrowLeftIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 
 const CURRENCIES = [
   { code: 'RWF', symbol: 'RWF', name: 'Rwandan Franc' },
@@ -15,6 +24,7 @@ function Products() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [formData, setFormData] = useState({
@@ -83,14 +93,12 @@ function Products() {
 
     try {
       if (editingProduct) {
-        // Update existing product
         await axios.put(
           `${API_URL}/api/products/${editingProduct._id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
-        // Create new product
         await axios.post(`${API_URL}/api/products`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -181,47 +189,109 @@ function Products() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white shadow-sm rounded-lg p-6 mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Products & Services</h1>
-              <p className="text-gray-600 mt-1">Manage your product catalog</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products & Services</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your product catalog</p>
             </div>
-            <div className="flex gap-3">
+
+            {/* Mobile: Hamburger Menu */}
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="sm:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Toggle menu"
+            >
+              <Bars3Icon className="w-6 h-6 text-gray-700" />
+            </button>
+
+            {/* Desktop: Action Buttons */}
+            <div className="hidden sm:flex gap-3">
               <button
                 onClick={handleNewProduct}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold shadow-lg"
               >
-                + New Product
+                <PlusIcon className="w-5 h-5" />
+                New Product
               </button>
               <button
                 onClick={() => navigate('/dashboard')}
-                className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
               >
+                <ArrowLeftIcon className="w-5 h-5" />
                 Dashboard
               </button>
             </div>
           </div>
 
+          {/* Mobile: New Product Button (Full Width) */}
+          <button
+            onClick={handleNewProduct}
+            className="sm:hidden w-full mt-4 inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold shadow-lg"
+          >
+            <PlusIcon className="w-5 h-5" />
+            New Product
+          </button>
+
           {/* Search */}
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="text"
-              placeholder="🔍 Search products by name, description, category, or SKU..."
+              placeholder="Search products by name, description..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
             />
           </div>
         </div>
+      </div>
 
-        {/* Products List */}
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+            onClick={() => setShowMobileMenu(false)}
+          ></div>
+          
+          <div className="fixed top-0 right-0 h-full w-64 bg-white shadow-2xl z-50 sm:hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-bold text-gray-900">Menu</h2>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6 text-gray-700" />
+              </button>
+            </div>
+            
+            <nav className="p-4">
+              <button
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  navigate('/dashboard');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+              >
+                <ArrowLeftIcon className="w-5 h-5" />
+                Back to Dashboard
+              </button>
+            </nav>
+          </div>
+        </>
+      )}
+
+      {/* Products List */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-4">
           {filteredProducts.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <div className="bg-white rounded-lg shadow-sm p-8 sm:p-12 text-center">
               <div className="text-gray-400 mb-4">
                 <svg
                   className="mx-auto h-12 w-12"
@@ -258,76 +328,150 @@ function Products() {
             filteredProducts.map((product) => (
               <div
                 key={product._id}
-                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition"
               >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-semibold text-gray-900">
-                          {product.name}
-                        </h3>
-                        {product.description && (
-                          <p className="text-gray-600 mt-1">{product.description}</p>
-                        )}
-                        <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium">Price:</span>
-                            <span className="text-lg font-bold text-blue-600">
-                              {getCurrencySymbol(product.currency)}{' '}
-                              {product.unitPrice.toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
-                            </span>
-                          </div>
-                          {product.category && (
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">Category:</span>
-                              <span className="bg-gray-100 px-2 py-1 rounded">
-                                {product.category}
-                              </span>
-                            </div>
-                          )}
-                          {product.sku && (
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">SKU:</span>
-                              <span>{product.sku}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium">Taxable:</span>
-                            <span>
-                              {product.taxable ? (
-                                <span className="text-green-600">✓ Yes</span>
-                              ) : (
-                                <span className="text-red-600">✗ No</span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                        {product.notes && (
-                          <p className="mt-2 text-sm text-gray-500 italic">
-                            Note: {product.notes}
-                          </p>
-                        )}
-                      </div>
+                {/* Mobile Layout */}
+                <div className="sm:hidden">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-lg font-bold text-gray-900 flex-1 pr-2">
+                      {product.name}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(product)}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
+                        aria-label="Edit"
+                      >
+                        <PencilSquareIcon className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(product)}
+                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+                        aria-label="Delete"
+                      >
+                        <TrashIcon className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 ml-4">
-                    <button
-                      onClick={() => handleEdit(product)}
-                      className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(product)}
-                      className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
-                    >
-                      Delete
-                    </button>
+                  {product.description && (
+                    <p className="text-sm text-gray-600 mb-3">{product.description}</p>
+                  )}
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-gray-600">Price:</span>
+                      <span className="text-lg font-bold text-blue-600">
+                        {getCurrencySymbol(product.currency)}{' '}
+                        {product.unitPrice.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+
+                    {product.category && (
+                      <div className="flex justify-between items-center py-2 border-b">
+                        <span className="text-gray-600">Category:</span>
+                        <span className="bg-gray-100 px-2 py-1 rounded font-medium">
+                          {product.category}
+                        </span>
+                      </div>
+                    )}
+
+                    {product.sku && (
+                      <div className="flex justify-between items-center py-2 border-b">
+                        <span className="text-gray-600">SKU:</span>
+                        <span className="font-medium">{product.sku}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-600">Taxable:</span>
+                      <span>
+                        {product.taxable ? (
+                          <span className="text-green-600 font-medium">✓ Yes</span>
+                        ) : (
+                          <span className="text-red-600 font-medium">✗ No</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {product.notes && (
+                    <p className="mt-3 text-xs text-gray-500 italic bg-gray-50 p-2 rounded">
+                      Note: {product.notes}
+                    </p>
+                  )}
+                </div>
+
+                {/* Desktop Layout */}
+                <div className="hidden sm:block">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {product.name}
+                      </h3>
+                      {product.description && (
+                        <p className="text-gray-600 mt-1">{product.description}</p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Price:</span>
+                          <span className="text-lg font-bold text-blue-600">
+                            {getCurrencySymbol(product.currency)}{' '}
+                            {product.unitPrice.toLocaleString('en-US', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        </div>
+                        {product.category && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">Category:</span>
+                            <span className="bg-gray-100 px-2 py-1 rounded">
+                              {product.category}
+                            </span>
+                          </div>
+                        )}
+                        {product.sku && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">SKU:</span>
+                            <span>{product.sku}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Taxable:</span>
+                          <span>
+                            {product.taxable ? (
+                              <span className="text-green-600">✓ Yes</span>
+                            ) : (
+                              <span className="text-red-600">✗ No</span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                      {product.notes && (
+                        <p className="mt-2 text-sm text-gray-500 italic">
+                          Note: {product.notes}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        onClick={() => handleEdit(product)}
+                        className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition font-medium"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(product)}
+                        className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
