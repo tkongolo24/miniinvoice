@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import {
+  MagnifyingGlassIcon,
+  PlusIcon,
+  ArrowLeftIcon,
+  LinkIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 
 function Clients() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -12,12 +21,10 @@ function Clients() {
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, client: null });
   const [submitting, setSubmitting] = useState(false);
 
-  // NEW: Onboarding link state
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [onboardingLink, setOnboardingLink] = useState('');
   const [generatingLink, setGeneratingLink] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -104,7 +111,6 @@ function Clients() {
     setShowModal(true);
   };
 
-  // NEW: Generate onboarding link
   const generateOnboardingLink = async () => {
     try {
       setGeneratingLink(true);
@@ -125,13 +131,11 @@ function Clients() {
     }
   };
 
-  // NEW: Copy link to clipboard
   const copyToClipboard = () => {
     navigator.clipboard.writeText(onboardingLink);
     alert('Link copied to clipboard!');
   };
 
-  // NEW: Share via WhatsApp
   const shareViaWhatsApp = () => {
     const message = `Hi! Please fill in your details using this link: ${onboardingLink}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -203,16 +207,27 @@ function Clients() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Clients</h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your client contacts</p>
             </div>
-            <div className="flex gap-3">
+
+            {/* Mobile: Back Button */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="sm:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Back to dashboard"
+            >
+              <ArrowLeftIcon className="w-6 h-6 text-gray-700" />
+            </button>
+
+            {/* Desktop: Action Buttons */}
+            <div className="hidden sm:flex gap-3">
               <button
                 onClick={generateOnboardingLink}
                 disabled={generatingLink}
-                className="bg-green-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-green-700 transition duration-200 font-medium text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generatingLink ? (
                   <>
@@ -221,67 +236,83 @@ function Clients() {
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
+                    <LinkIcon className="w-5 h-5" />
                     Onboarding Link
                   </>
                 )}
               </button>
               <button
                 onClick={openAddModal}
-                className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-medium text-sm sm:text-base"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold shadow-lg"
               >
-                + New Client
+                <PlusIcon className="w-5 h-5" />
+                New Client
               </button>
-              <Link
-                to="/dashboard"
-                className="bg-gray-200 text-gray-700 px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-300 transition duration-200 font-medium text-sm sm:text-base text-center"
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
               >
+                <ArrowLeftIcon className="w-5 h-5" />
                 Dashboard
-              </Link>
+              </button>
             </div>
+          </div>
+
+          {/* Mobile: Action Buttons Row */}
+          <div className="sm:hidden mt-4 flex gap-2">
+            <button
+              onClick={generateOnboardingLink}
+              disabled={generatingLink}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {generatingLink ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span className="text-sm">Generating...</span>
+                </>
+              ) : (
+                <>
+                  <LinkIcon className="w-5 h-5" />
+                  <span className="text-sm">Link</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={openAddModal}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold shadow-lg"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span className="text-sm">New Client</span>
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="mt-4 sm:mt-6 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search clients by name or email..."
+              value={searchTerm}
+              onChange={handleSearch}
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+            />
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
             {error}
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="bg-white rounded-lg shadow mb-6 p-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search clients by name or email..."
-              value={searchTerm}
-              onChange={handleSearch}
-              className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <svg
-              className="absolute left-3 top-3.5 h-5 w-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-        </div>
-
         {/* Clients List */}
         <div className="bg-white rounded-lg shadow">
           {clients.length === 0 ? (
-            <div className="p-12 text-center">
+            <div className="p-8 sm:p-12 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg
                   className="w-8 h-8 text-gray-400"
@@ -298,20 +329,20 @@ function Clients() {
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No clients yet</h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-6 text-sm sm:text-base">
                 {searchTerm ? 'No clients found matching your search.' : 'Get started by adding your first client.'}
               </p>
               {!searchTerm && (
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
                     onClick={generateOnboardingLink}
-                    className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
                   >
                     Send Onboarding Link
                   </button>
                   <button
                     onClick={openAddModal}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
                   >
                     Add Manually
                   </button>
@@ -321,51 +352,108 @@ function Clients() {
           ) : (
             <div className="divide-y divide-gray-200">
               {clients.map((client) => (
-                <div key={client._id} className="p-6 hover:bg-gray-50 transition">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{client.email}</p>
-                      {client.phone && (
-                        <p className="text-sm text-gray-600 mt-0.5">📞 {client.phone}</p>
-                      )}
-                      {(client.city || client.country) && (
-                        <p className="text-sm text-gray-600 mt-0.5">
-                          📍 {[client.city, client.country].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div className="text-sm">
-                        <div className="text-gray-600">
-                          <span className="font-medium">{client.invoiceCount || 0}</span> invoices
-                        </div>
-                        {client.totalInvoiced > 0 && (
-                          <div className="text-gray-600 mt-1">
-                            Total: <span className="font-medium">{getCurrencySymbol('RWF')} {client.totalInvoiced.toLocaleString()}</span>
-                          </div>
-                        )}
-                        {client.outstanding > 0 && (
-                          <div className="text-orange-600 mt-1">
-                            Outstanding: <span className="font-medium">{getCurrencySymbol('RWF')} {client.outstanding.toLocaleString()}</span>
-                          </div>
-                        )}
+                <div key={client._id} className="p-4 sm:p-6 hover:bg-gray-50 transition">
+                  {/* Mobile Layout */}
+                  <div className="sm:hidden">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 pr-2">
+                        <h3 className="text-lg font-bold text-gray-900">{client.name}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{client.email}</p>
                       </div>
-
                       <div className="flex gap-2">
                         <button
                           onClick={() => openEditModal(client)}
-                          className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium"
+                          className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
+                          aria-label="Edit"
                         >
-                          Edit
+                          <PencilSquareIcon className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(client)}
-                          className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium"
+                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+                          aria-label="Delete"
                         >
-                          Delete
+                          <TrashIcon className="w-5 h-5" />
                         </button>
+                      </div>
+                    </div>
+
+                    {client.phone && (
+                      <p className="text-sm text-gray-600 mb-1">📞 {client.phone}</p>
+                    )}
+                    {(client.city || client.country) && (
+                      <p className="text-sm text-gray-600 mb-3">
+                        📍 {[client.city, client.country].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2 text-sm pt-3 border-t">
+                      <div>
+                        <span className="text-gray-600">Invoices:</span>
+                        <p className="font-medium">{client.invoiceCount || 0}</p>
+                      </div>
+                      {client.totalInvoiced > 0 && (
+                        <div>
+                          <span className="text-gray-600">Total:</span>
+                          <p className="font-medium">{getCurrencySymbol('RWF')} {client.totalInvoiced.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {client.outstanding > 0 && (
+                        <div className="col-span-2">
+                          <span className="text-orange-600">Outstanding:</span>
+                          <p className="font-medium text-orange-600">{getCurrencySymbol('RWF')} {client.outstanding.toLocaleString()}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:block">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{client.email}</p>
+                        {client.phone && (
+                          <p className="text-sm text-gray-600 mt-0.5">📞 {client.phone}</p>
+                        )}
+                        {(client.city || client.country) && (
+                          <p className="text-sm text-gray-600 mt-0.5">
+                            📍 {[client.city, client.country].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-sm text-right">
+                          <div className="text-gray-600">
+                            <span className="font-medium">{client.invoiceCount || 0}</span> invoices
+                          </div>
+                          {client.totalInvoiced > 0 && (
+                            <div className="text-gray-600 mt-1">
+                              Total: <span className="font-medium">{getCurrencySymbol('RWF')} {client.totalInvoiced.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {client.outstanding > 0 && (
+                            <div className="text-orange-600 mt-1">
+                              Outstanding: <span className="font-medium">{getCurrencySymbol('RWF')} {client.outstanding.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openEditModal(client)}
+                            className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition font-medium"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(client)}
+                            className="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -376,7 +464,7 @@ function Clients() {
         </div>
       </div>
 
-      {/* NEW: Onboarding Link Modal */}
+      {/* Onboarding Link Modal */}
       {showOnboardingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
