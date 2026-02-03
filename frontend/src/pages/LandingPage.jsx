@@ -159,7 +159,7 @@ const LandingPage = () => {
             <div className="bg-white rounded-2xl shadow-xl p-2 transform hover:scale-105 transition duration-300">
               <div className="bg-gray-100 rounded-xl overflow-hidden">
                 <img 
-                  src="public/dashboard.jpeg" 
+                  src="/dashboard.jpeg" 
                   alt="Dashboard showing invoice list and stats"
                   className="w-full h-auto"
                 />
@@ -174,7 +174,7 @@ const LandingPage = () => {
             <div className="bg-white rounded-2xl shadow-xl p-2 transform hover:scale-105 transition duration-300 md:-mt-8">
               <div className="bg-gray-100 rounded-xl overflow-hidden">
                 <img 
-                  src="public/create-invoice.jpeg" 
+                  src="/create-invoice.jpeg" 
                   alt="Professional invoice with all details"
                   className="w-full h-auto"
                 />
@@ -189,7 +189,7 @@ const LandingPage = () => {
             <div className="bg-white rounded-2xl shadow-xl p-2 transform hover:scale-105 transition duration-300">
               <div className="bg-gray-100 rounded-xl overflow-hidden">
                 <img 
-                  src="public/client-page.jpeg" 
+                  src="/client-page.jpeg" 
                   alt="Client management interface"
                   className="w-full h-auto"
                 />
