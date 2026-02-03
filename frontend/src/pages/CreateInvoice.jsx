@@ -536,7 +536,7 @@ function CreateInvoice() {
                     type="text"
                     value={formData.invoiceNumber}
                     disabled
-                    className="w-full px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-600"
+                    className="w-full px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-600 box-border"
                   />
                   <p className="mt-1 text-xs text-gray-500">Invoice number cannot be changed</p>
                 </div>
@@ -559,7 +559,7 @@ function CreateInvoice() {
                   name="currency"
                   value={formData.currency}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full max-w-full px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent box-border"
                 >
                   {CURRENCIES.map((curr) => (
                     <option key={curr.code} value={curr.code}>
@@ -576,7 +576,7 @@ function CreateInvoice() {
                   name="dateIssued"
                   value={formData.dateIssued}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full max-w-full px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent box-border"
                   required
                 />
               </div>
@@ -588,7 +588,7 @@ function CreateInvoice() {
                   name="dueDate"
                   value={formData.dueDate}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full max-w-full px-4 py-2.5 sm:py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent box-border ${
                     errors.dueDate ? 'border-red-500 bg-red-50' : 'border-gray-300'
                   }`}
                   required
