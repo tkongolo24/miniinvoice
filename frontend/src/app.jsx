@@ -19,8 +19,21 @@ import LandingPage from './pages/LandingPage';
 import Clients from './pages/Clients';
 import Products from './pages/Products';
 import ClientOnboarding from './pages/ClientOnboarding';
+import mixpanel from 'mixpanel-browser'; // ✅ ADD THIS LINE!
 
 inject();
+
+// Initialize Mixpanel once when app loads
+mixpanel.init('7ba522f443c2144f9127defe1daca666', {
+  debug: true, // Shows events in console - set to false in production
+  track_pageview: true,
+  persistence: 'localStorage',
+});
+
+// Track that app loaded successfully
+mixpanel.track('App Loaded');
+console.log('✅ Mixpanel initialized successfully!');
+
 
 // Protected Route component
 function ProtectedRoute({ children }) {
