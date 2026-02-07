@@ -19,13 +19,13 @@ import LandingPage from './pages/LandingPage';
 import Clients from './pages/Clients';
 import Products from './pages/Products';
 import ClientOnboarding from './pages/ClientOnboarding';
-import mixpanel from 'mixpanel-browser'; // ✅ ADD THIS LINE!
+import mixpanel from 'mixpanel-browser'; 
 
 inject();
 
 // Initialize Mixpanel once when app loads
 mixpanel.init('7ba522f443c2144f9127defe1daca666', {
-  debug: true, // Shows events in console - set to false in production
+  debug: true,
   track_pageview: true,
   persistence: 'localStorage',
 });
