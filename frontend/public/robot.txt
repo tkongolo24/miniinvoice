@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /invoices/
+Disallow: /clients/
+Disallow: /api/
+
+Sitemap: https://billkazi.me/sitemap.xml

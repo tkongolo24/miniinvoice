@@ -1,4 +1,5 @@
 import mixpanel from 'mixpanel-browser';
+import { Helmet } from 'react-helmet-async';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -52,7 +53,32 @@ const LandingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      {/* SEO Meta Tags */}
+      <Helmet>
+        <title>BillKazi - Simple Invoicing for African Freelancers & SMEs</title>
+        <meta name="description" content="Create professional invoices in 30 seconds. Built for African freelancers and SMEs with multi-currency support (RWF, KES, NGN, USD, EUR), WhatsApp sharing, and easy payment tracking. Start free today." />
+        <meta name="keywords" content="invoice software, invoicing app, freelancer tools, Rwanda invoice, Kenya invoice, Nigeria invoice, multi-currency invoice, SME tools, business invoicing, African freelancers, WhatsApp invoice, mobile invoicing, RWF, KES, NGN, free invoice generator" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://billkazi.me/" />
+        <meta property="og:title" content="BillKazi - Simple Invoicing for African Freelancers" />
+        <meta property="og:description" content="Create professional invoices in 30 seconds. Multi-currency support, WhatsApp sharing, and payment tracking built for Africa." />
+        <meta property="og:image" content="https://billkazi.me/og-image.png" />
+        
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://billkazi.me/" />
+        <meta property="twitter:title" content="BillKazi - Simple Invoicing for African Freelancers" />
+        <meta property="twitter:description" content="Create professional invoices in 30 seconds. Multi-currency support, WhatsApp sharing, and payment tracking built for Africa." />
+        <meta property="twitter:image" content="https://billkazi.me/og-image.png" />
+        
+        <link rel="canonical" href="https://billkazi.me/" />
+      </Helmet>
+      <div className="min-h-screen bg-white" style={{ marginTop: 0, paddingTop: 0 }}>
+
+    
       {/* Navigation */}
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 backdrop-blur-sm bg-white/90">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -732,7 +758,8 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 };
 
