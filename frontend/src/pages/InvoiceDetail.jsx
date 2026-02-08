@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import mixpanel from 'mixpanel-browser';
 
 const InvoiceDetail = () => {
   const { id } = useParams();
@@ -16,6 +17,7 @@ const InvoiceDetail = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
+    mixpanel.track('Invoice Detail Viewed', { invoice_id: id });
     fetchInvoice();
     fetchCompanySettings();
   }, [id]);
@@ -68,6 +70,28 @@ const InvoiceDetail = () => {
         }
       );
       setInvoice(response.data);
+      
+      // ✅ TRACK STATUS CHANGE
+      mixpanel.track('Invoice Status Changed', {
+        invoice_id: id,
+        old_status: invoice.status,
+        new_status: newStatus,
+        invoice_total: invoice.total,
+        currency: invoice.currency,
+      });
+      
+      // ✅ TRACK PAYMENT MILESTONE
+      if (newStatus === 'paid') {
+        mixpanel.track('Invoice Paid', {
+          invoice_id: id,
+          invoice_number: invoice.invoiceNumber,
+          amount: invoice.total,
+          currency: invoice.currency,
+        });
+        mixpanel.people.increment('Total Revenue', invoice.total);
+        mixpanel.people.increment('Invoices Paid Count');
+      }
+      
     } catch (err) {
       alert('Failed to update status');
     } finally {
@@ -80,6 +104,14 @@ const InvoiceDetail = () => {
 
     try {
       const token = localStorage.getItem('token');
+      
+      // ✅ TRACK DELETION
+      mixpanel.track('Invoice Deleted', {
+        invoice_id: id,
+        invoice_number: invoice.invoiceNumber,
+        status: invoice.status,
+      });
+      
       await axios.delete(`${import.meta.env.VITE_API_URL}/api/invoices/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -90,23 +122,34 @@ const InvoiceDetail = () => {
   };
 
   const sendEmailInvoice = async () => {
-  setSendingEmail(true);
-  try {
-    const token = localStorage.getItem('token');
-    await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/invoices/${id}/send-email`,
-      {},
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    alert('Invoice sent to ' + invoice.clientEmail);
-  } catch (err) {
-    alert('Failed to send email');
-  } finally {
-    setSendingEmail(false);
-  }
-};
+    setSendingEmail(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/invoices/${id}/send-email`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      // ✅ TRACK EMAIL SENT
+      mixpanel.track('Invoice Email Sent', {
+        invoice_id: id,
+        invoice_number: invoice.invoiceNumber,
+        client_email: invoice.clientEmail,
+        invoice_total: invoice.total,
+        currency: invoice.currency,
+      });
+      
+      alert('Invoice sent to ' + invoice.clientEmail);
+    } catch (err) {
+      alert('Failed to send email');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   const shareOnWhatsApp = () => {
     const currency = getCurrencySymbol(invoice.currency);
     const shareUrl = invoice.shareToken 
@@ -127,6 +170,17 @@ Please let me know if you have any questions.
 Thank you for your business!`;
 
     const encodedMessage = encodeURIComponent(message);
+    
+    // ✅ TRACK WHATSAPP SHARE
+    mixpanel.track('WhatsApp Share Clicked', {
+      invoice_id: id,
+      invoice_number: invoice.invoiceNumber,
+      share_type: 'invoice',
+      has_share_link: !!shareUrl,
+      invoice_total: invoice.total,
+      currency: invoice.currency,
+    });
+    
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
@@ -175,6 +229,17 @@ ${companySettings?.companyName || ''}`;
     }
 
     const encodedMessage = encodeURIComponent(message);
+    
+    // ✅ TRACK PAYMENT REMINDER
+    mixpanel.track('Payment Reminder Sent', {
+      invoice_id: id,
+      invoice_number: invoice.invoiceNumber,
+      is_overdue: isOverdue,
+      days_overdue: isOverdue ? diffDays : 0,
+      invoice_total: invoice.total,
+      currency: invoice.currency,
+    });
+    
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
@@ -208,12 +273,31 @@ ${companySettings?.companyName || ''}`;
 
   const generatePDF = () => {
     if (!invoice) return;
+    
+    // ✅ TRACK PDF DOWNLOAD
+    mixpanel.track('PDF Downloaded', {
+      invoice_id: id,
+      invoice_number: invoice.invoiceNumber,
+      type: 'invoice',
+      invoice_total: invoice.total,
+      currency: invoice.currency,
+    });
+    
     generateClassicPDF();
   };
 
   // Generate Receipt PDF
   const generateReceipt = () => {
     if (!invoice || invoice.status !== 'paid') return;
+
+    // ✅ TRACK RECEIPT DOWNLOAD
+    mixpanel.track('PDF Downloaded', {
+      invoice_id: id,
+      invoice_number: invoice.invoiceNumber,
+      type: 'receipt',
+      invoice_total: invoice.total,
+      currency: invoice.currency,
+    });
 
     const doc = new jsPDF();
     const currency = getCurrencySymbol(invoice.currency);
@@ -393,6 +477,16 @@ Thank you for your business!
 ${companySettings?.companyName || ''}`;
 
     const encodedMessage = encodeURIComponent(message);
+    
+    // ✅ TRACK RECEIPT SHARE
+    mixpanel.track('WhatsApp Share Clicked', {
+      invoice_id: id,
+      invoice_number: invoice.invoiceNumber,
+      share_type: 'receipt',
+      invoice_total: invoice.total,
+      currency: invoice.currency,
+    });
+    
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
@@ -958,4 +1052,5 @@ ${companySettings?.companyName || ''}`;
     </div>
   );
 };
+
 export default InvoiceDetail;

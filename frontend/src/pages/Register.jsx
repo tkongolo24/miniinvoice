@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import mixpanel from 'mixpanel-browser';
 import GoogleSignInButton from '../components/GoogleSignInButton';
 
 const Register = () => {
@@ -16,6 +17,11 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+
+  // Track page view when component mounts
+  useEffect(() => {
+    mixpanel.track('Sign Up Page Viewed');
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -68,7 +74,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await axios.post(
+      const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/api/auth/register`,
         {
           name: formData.name,
@@ -77,12 +83,33 @@ const Register = () => {
           confirmPassword: formData.confirmPassword,
         }
       );
+
+      // ✅ TRACK SUCCESSFUL SIGN UP
+      mixpanel.identify(response.data.user?._id || response.data.userId || formData.email);
+      mixpanel.people.set({
+        $email: formData.email,
+        $name: formData.name,
+        'Sign Up Date': new Date().toISOString(),
+        'Plan': 'Free',
+        'Email Verified': false,
+      });
+      mixpanel.track('Sign Up Completed', {
+        method: 'email',
+        email: formData.email,
+      });
+
       setSuccess(true);
       setError('');
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (err) {
+      // ✅ TRACK SIGN UP FAILURE
+      mixpanel.track('Sign Up Failed', {
+        method: 'email',
+        error: err.response?.data?.message || 'Registration failed',
+      });
+      
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
       setSuccess(false);
     } finally {

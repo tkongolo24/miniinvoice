@@ -1,12 +1,19 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import mixpanel from 'mixpanel-browser';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const LandingPage = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignUpClick = (e) => {
+  // Track landing page view
+  useEffect(() => {
+    mixpanel.track('Landing Page Viewed');
+  }, []);
+
+  const handleSignUpClick = (e, location = 'hero') => {
     e.preventDefault();
+    mixpanel.track('Sign Up Button Clicked', { location });
     setIsTransitioning(true);
     setTimeout(() => {
       navigate('/register');
@@ -15,6 +22,7 @@ const LandingPage = () => {
 
   const handleLoginClick = (e) => {
     e.preventDefault();
+    mixpanel.track('Login Button Clicked');
     setIsTransitioning(true);
     setTimeout(() => {
       navigate('/login');
@@ -69,7 +77,7 @@ const LandingPage = () => {
                 Log in
               </button>
               <button
-                onClick={handleSignUpClick}
+                onClick={(e) => handleSignUpClick(e, 'nav')}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium shadow-sm"
               >
                 Sign up free
@@ -102,7 +110,7 @@ const LandingPage = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
               <button
-                onClick={handleSignUpClick}
+                onClick={(e) => handleSignUpClick(e, 'hero')}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition text-base font-semibold shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +150,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Screenshots Section - NEW */}
+      {/* Screenshots Section */}
       <section className="py-16 sm:py-24 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -155,7 +163,6 @@ const LandingPage = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-            {/* Screenshot 1: Dashboard */}
             <div className="bg-white rounded-2xl shadow-xl p-2 transform hover:scale-105 transition duration-300">
               <div className="bg-gray-100 rounded-xl overflow-hidden">
                 <img 
@@ -170,11 +177,10 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* Screenshot 2: Invoice Detail */}
             <div className="bg-white rounded-2xl shadow-xl p-2 transform hover:scale-105 transition duration-300 md:-mt-8">
               <div className="bg-gray-100 rounded-xl overflow-hidden">
                 <img 
-                  src="/create-invoice.jpeg" 
+                  src="/invoice-detail.jpeg" 
                   alt="Professional invoice with all details"
                   className="w-full h-auto"
                 />
@@ -185,11 +191,10 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* Screenshot 3: Clients */}
             <div className="bg-white rounded-2xl shadow-xl p-2 transform hover:scale-105 transition duration-300">
               <div className="bg-gray-100 rounded-xl overflow-hidden">
                 <img 
-                  src="/client-page.jpeg" 
+                  src="/clients.jpeg" 
                   alt="Client management interface"
                   className="w-full h-auto"
                 />
@@ -203,7 +208,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Why BillKazi - NEW */}
+      {/* Why BillKazi */}
       <section className="py-16 sm:py-20 bg-blue-600 text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -523,7 +528,7 @@ const LandingPage = () => {
                 </li>
               </ul>
               <button
-                onClick={handleSignUpClick}
+                onClick={(e) => handleSignUpClick(e, 'pricing')}
                 className="block w-full text-center py-3 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition"
               >
                 Get started free
@@ -578,7 +583,7 @@ const LandingPage = () => {
                 </li>
               </ul>
               <button
-                onClick={handleSignUpClick}
+                onClick={(e) => handleSignUpClick(e, 'pricing')}
                 className="block w-full text-center py-3 bg-white text-blue-600 rounded-lg text-base font-bold hover:bg-blue-50 transition shadow-lg"
               >
                 Start with Pro
@@ -622,7 +627,7 @@ const LandingPage = () => {
                 </li>
               </ul>
               <button
-                onClick={handleSignUpClick}
+                onClick={(e) => handleSignUpClick(e, 'pricing')}
                 className="block w-full text-center py-3 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition"
               >
                 Contact sales
@@ -648,7 +653,7 @@ const LandingPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={handleSignUpClick}
+              onClick={(e) => handleSignUpClick(e, 'cta')}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-lg hover:bg-blue-50 transition text-lg font-bold shadow-2xl"
             >
               Create free account
@@ -672,7 +677,7 @@ const LandingPage = () => {
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><a href="#features" className="hover:text-gray-900 transition">Features</a></li>
                 <li><a href="#pricing" className="hover:text-gray-900 transition">Pricing</a></li>
-                <li><button onClick={handleSignUpClick} className="hover:text-gray-900 transition">Sign up</button></li>
+                <li><button onClick={(e) => handleSignUpClick(e, 'footer')} className="hover:text-gray-900 transition">Sign up</button></li>
               </ul>
             </div>
             <div>
@@ -716,7 +721,7 @@ const LandingPage = () => {
                 <button onClick={handleLoginClick} className="hover:text-gray-900 transition font-medium">
                   Log in
                 </button>
-                <button onClick={handleSignUpClick} className="hover:text-gray-900 transition font-medium">
+                <button onClick={(e) => handleSignUpClick(e, 'footer')} className="hover:text-gray-900 transition font-medium">
                   Sign up
                 </button>
                 <a href="mailto:hello@billkazi.me" className="hover:text-gray-900 transition font-medium">

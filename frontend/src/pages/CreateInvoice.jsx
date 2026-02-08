@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import axios from 'axios';
+import  mixpanel from 'mixpanel-browser'
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -126,8 +127,10 @@ function CreateInvoice() {
 
   useEffect(() => {
     if (id) {
+      mixpanel.track('Edit Invoice Page Viewed', { invoice_id: id });
       fetchInvoice();
     } else {
+      mixpanel.track('Create Invoice Page Viewed');
       checkProfileComplete();
     }
     fetchClients();
@@ -170,6 +173,10 @@ function CreateInvoice() {
   };
 
   const handleClientSelect = (client) => {
+    mixpanel.track('Client Selected in Invoice', {
+    client_id: client._id,
+    has_payment_terms: !!client.paymentTerms,
+    });
     setSelectedClient(client);
     setShowClientDropdown(false);
     setClientSearchTerm('');
@@ -219,6 +226,11 @@ function CreateInvoice() {
   );
 
   const handleProductSelect = (product, itemIndex) => {
+    mixpanel.track('Product Selected in Invoice', {
+    product_id: product._id,
+    product_name: product.name,
+    unit_price: product.unitPrice,
+    });
     const updatedItems = [...formData.items];
     updatedItems[itemIndex] = {
       ...updatedItems[itemIndex],
@@ -272,6 +284,9 @@ function CreateInvoice() {
   };
 
   const addItem = () => {
+    mixpanel.track('Invoice Item Added', {
+    total_items: formData.items.length + 1,
+    });
     setFormData((prev) => ({
       ...prev,
       items: [...prev.items, { description: '', quantity: '', unitPrice: '' }],
@@ -280,6 +295,9 @@ function CreateInvoice() {
 
   const removeItem = (index) => {
     if (formData.items.length > 1) {
+      mixpanel.track('Invoice Item Removed', {
+      remaining_items: formData.items.length - 1,
+      });
       setFormData((prev) => ({
         ...prev,
         items: prev.items.filter((_, i) => i !== index),
@@ -386,6 +404,11 @@ function CreateInvoice() {
     e.preventDefault();
 
     if (!validateForm()) {
+      // TRACK VALIDATION FAILURE
+      mixpanel.track('Invoice Validation Failed', {
+        error_types: Object.keys(errors),
+        is_edit_mode: isEditMode,
+      });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -402,19 +425,52 @@ function CreateInvoice() {
         total: calculateTotal(),
       };
 
-      if (isEditMode) {
+    if (isEditMode) {
         await axios.put(`${API_URL}/api/invoices/${id}`, invoiceData, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        // TRACK INVOICE UPDATE
+        mixpanel.track('Invoice Updated', {
+          invoice_id: id,
+          currency: invoiceData.currency,
+          total: invoiceData.total,
+          items_count: invoiceData.items.length,
+          has_discount: invoiceData.hasDiscount,
+        });
+
         navigate(`/invoice/${id}`);
       } else {
         await axios.post(`${API_URL}/api/invoices`, invoiceData, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        // ✅ TRACK INVOICE CREATION (MOST IMPORTANT!)
+        mixpanel.track('Invoice Created', {
+          currency: invoiceData.currency,
+          total: invoiceData.total,
+          items_count: invoiceData.items.length,
+          has_discount: invoiceData.hasDiscount,
+          has_tax: invoiceData.tax > 0,
+          client_type: invoiceData.clientId ? 'existing' : 'new',
+        });
+
+        // ✅ UPDATE USER PROPERTIES
+        mixpanel.people.increment('Total Invoices Created');
+        mixpanel.people.set_once('First Invoice Date', new Date().toISOString());
+
         navigate('/dashboard');
-      }
-    } catch (error) {
+      }  
+    }  catch (error) {
       console.error('Error saving invoice:', error);
+      
+      // ✅ TRACK FAILURE
+      mixpanel.track('Invoice Save Failed', {
+        is_edit_mode: isEditMode,
+        error: error.response?.data?.message || error.message,
+        currency: formData.currency,
+      });
+
       setErrors({
         submit: error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} invoice. Please try again.`,
       });
