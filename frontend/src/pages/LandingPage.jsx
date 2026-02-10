@@ -103,10 +103,12 @@ const LandingPage = () => {
                 Log in
               </button>
               <button
-                onClick={(e) => handleSignUpClick(e, 'nav')}
+                data-tally-open="J9ARDr"
+                data-tally-emoji-text="🎉"
+                data-tally-emoji-animation="wave"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium shadow-sm"
               >
-                Sign up free
+                Join Waitlist
               </button>
             </div>
           </div>
@@ -136,13 +138,15 @@ const LandingPage = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
               <button
-                onClick={(e) => handleSignUpClick(e, 'hero')}
+                data-tally-open="J9ARDr" 
+                data-tally-emoji-text="🎉" 
+                data-tally-emoji-animation="wave"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition text-base font-semibold shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Create your first invoice
+                Join Waitlist - Get Early Access
               </button>
               <button
                 onClick={handleLoginClick}
@@ -609,10 +613,12 @@ const LandingPage = () => {
                 </li>
               </ul>
               <button
-                onClick={(e) => handleSignUpClick(e, 'pricing')}
+                data-tally-open="J9ARDr"
+                data-tally-emoji-text="🎉"
+                data-tally-emoji-animation="wave"
                 className="block w-full text-center py-3 bg-white text-blue-600 rounded-lg text-base font-bold hover:bg-blue-50 transition shadow-lg"
               >
-                Start with Pro
+                Join Waitlist
               </button>
             </div>
 
@@ -653,10 +659,12 @@ const LandingPage = () => {
                 </li>
               </ul>
               <button
-                onClick={(e) => handleSignUpClick(e, 'pricing')}
+                data-tally-open="J9ARDr"
+                data-tally-emoji-text="🎉"
+                data-tally-emoji-animation="wave"
                 className="block w-full text-center py-3 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition"
               >
-                Contact sales
+                Join Waitlist
               </button>
             </div>
           </div>
@@ -679,10 +687,12 @@ const LandingPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={(e) => handleSignUpClick(e, 'cta')}
+              data-tally-open="J9ARDr"
+              data-tally-emoji-text="🎉"
+              data-tally-emoji-animation="wave"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-lg hover:bg-blue-50 transition text-lg font-bold shadow-2xl"
             >
-              Create free account
+              Join Waitlist Now
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -703,7 +713,16 @@ const LandingPage = () => {
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><a href="#features" className="hover:text-gray-900 transition">Features</a></li>
                 <li><a href="#pricing" className="hover:text-gray-900 transition">Pricing</a></li>
-                <li><button onClick={(e) => handleSignUpClick(e, 'footer')} className="hover:text-gray-900 transition">Sign up</button></li>
+                <li>
+                  <button 
+                    data-tally-open="J9ARDr"
+                    data-tally-emoji-text="🎉"
+                    data-tally-emoji-animation="wave"
+                    className="hover:text-gray-900 transition"
+                  >
+                    Join Waitlist
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
@@ -744,11 +763,15 @@ const LandingPage = () => {
                 </span>
               </div>
               <div className="flex gap-6 text-sm text-gray-600">
-                <button onClick={handleLoginClick} className="hover:text-gray-900 transition font-medium">
+                <button onClick={handleLoginClick} className="hover:text-gray-900 transition font-medium"></button>
                   Log in
-                </button>
-                <button onClick={(e) => handleSignUpClick(e, 'footer')} className="hover:text-gray-900 transition font-medium">
-                  Sign up
+                <button 
+                  data-tally-open="J9ARDr"
+                  data-tally-emoji-text="🎉"
+                  data-tally-emoji-animation="wave"
+                  className="hover:text-gray-900 transition font-medium"
+                >
+                  Join Waitlist
                 </button>
                 <a href="mailto:hello@billkazi.me" className="hover:text-gray-900 transition font-medium">
                   Contact
