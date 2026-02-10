@@ -773,7 +773,7 @@ const LandingPage = () => {
                 >
                   Join Waitlist
                 </button>
-                <a href="mailto:hello@billkazi.me" className="hover:text-gray-900 transition font-medium">
+                <a href="michealkongolo24@gmail.com" className="hover:text-gray-900 transition font-medium">
                   Contact
                 </a>
               </div>
