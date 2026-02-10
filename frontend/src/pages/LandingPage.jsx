@@ -76,7 +76,24 @@ const LandingPage = () => {
         
         <link rel="canonical" href="https://billkazi.me/" />
       </Helmet>
-      <div className="min-h-screen bg-white" style={{ marginTop: 0, paddingTop: 0 }}>
+      
+      {/* Launch Banner */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 text-center">
+        <p className="text-sm sm:text-base font-medium">
+          🚀 Launching February, 2026 | 
+          <button 
+            data-tally-open="J9ARDr"
+            data-tally-emoji-text="🎉"
+            data-tally-emoji-animation="wave"
+            className="ml-2 underline hover:text-blue-100 font-semibold"
+          >
+            Join the waitlist for early access + 3 months Pro free
+          </button>
+        </p>
+      </div>
+
+      <div className="min-h-screen bg-white" style={{ marginTop: 0, paddingTop: 0 }}></div>
+  
 
     
       {/* Navigation */}
