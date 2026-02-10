@@ -91,7 +91,7 @@ const LandingPage = () => {
           </button>
         </p>
       </div>
-      <div className="min-h-screen bg-white" style={{ marginTop: 0, paddingTop: 0 }}></div>
+      <div className="min-h-screen bg-white" style={{ marginTop: 0, paddingTop: 0 }}>
     
       {/* Navigation */}
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 backdrop-blur-sm bg-white/90">
@@ -795,6 +795,7 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+      </div>
     </>
   );
 };
