@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import axios from 'axios';
+import ReminderSettings from './ReminderSettings';
 import  mixpanel from 'mixpanel-browser'
 import {
   ArrowLeftIcon,
@@ -56,21 +57,32 @@ function CreateInvoice() {
   const [productSearchTerm, setProductSearchTerm] = useState('');
   
   const [formData, setFormData] = useState({
-    clientId: null, 
-    clientName: '',
-    clientEmail: '',
-    clientAddress: '',
-    dateIssued: new Date().toISOString().split('T')[0],
-    dueDate: '',
-    items: [{ description: '', quantity: '', unitPrice: '' }],
-    notes: '',
-    currency: 'RWF',
-    template: 'classic',
-    taxRate: 18,
-    hasDiscount: false,
-    discount: 0,
-    discountType: 'percentage',
-  });
+  clientId: null, 
+  clientName: '',
+  clientEmail: '',
+  clientAddress: '',
+  dateIssued: new Date().toISOString().split('T')[0],
+  dueDate: '',
+  items: [{ description: '', quantity: '', unitPrice: '' }],
+  notes: '',
+  currency: 'RWF',
+  template: 'classic',
+  taxRate: 18,
+  hasDiscount: false,
+  discount: 0,
+  discountType: 'percentage',
+  // 🔔 PAYMENT REMINDERS
+  reminderSettings: {
+    enabled: false,
+    beforeDue: [],
+    onDue: false,
+    afterDue: [],
+  },
+  customReminderMessage: {
+    paymentInstructions: '',
+    contactInfo: '',
+  },
+});
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const token = localStorage.getItem('token');
@@ -114,7 +126,18 @@ function CreateInvoice() {
         hasDiscount: invoice.hasDiscount || false,
         discount: invoice.discount || 0,
         discountType: invoice.discountType || 'percentage',
-      });
+        // 🔔 LOAD REMINDER SETTINGS
+      reminderSettings: invoice.reminderSettings || {
+        enabled: false,
+        beforeDue: [],
+        onDue: false,
+        afterDue: [],
+      },
+      customReminderMessage: invoice.customReminderMessage || {
+        paymentInstructions: '',
+        contactInfo: '',
+      },
+    });
 
       setLoadingInvoice(false);
       setCheckingProfile(false);
@@ -1128,6 +1151,9 @@ function CreateInvoice() {
                 placeholder="Payment terms, thank you note, etc."
               />
             </div>
+
+            {/*PAYMENT REMINDERS*/}
+            <ReminderSettings formData={formData} setFormData={setFormData} />
 
             {/* Summary */}
             <div className="border-t border-gray-200 pt-6">
