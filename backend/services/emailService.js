@@ -53,61 +53,168 @@ const sendPasswordResetEmail = async (email, token) => {
   return sendEmail(email, 'Reset Your BillKazi Password', html);
 };
 
-const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName) => {
-  const { invoiceNumber, clientName, total, currency, dueDate, daysOverdue } = invoiceData;
+// ========================================
+// 🔔 ENHANCED PAYMENT REMINDER EMAIL
+// ========================================
+const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, reminderType = 'after_due') => {
+  const { invoiceNumber, clientName, total, currency, dueDate, daysUntilDue, daysOverdue, customMessage } = invoiceData;
   
-  const currencySymbols = { RWF: 'RWF', KES: 'KES', NGN: 'NGN', CFA: 'CFA'};
+  const currencySymbols = { RWF: 'RWF', KES: 'KES', NGN: 'NGN', XOF: 'XOF', XAF: 'XAF', CFA: 'CFA', USD: '$', EUR: '€', GBP: '£' };
   const symbol = currencySymbols[currency] || currency;
   
-  const subject = daysOverdue > 0 
-    ? `Payment Overdue: Invoice #${invoiceNumber}` 
-    : `Payment Reminder: Invoice #${invoiceNumber}`;
+  // Format amount with commas
+  const formattedTotal = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formattedDueDate = new Date(dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   
-  const urgencyText = daysOverdue > 0
-    ? `<p style="color: #dc2626; font-weight: bold;">This invoice is ${daysOverdue} day${daysOverdue > 1 ? 's' : ''} overdue.</p>`
-    : `<p>This invoice is due on ${new Date(dueDate).toLocaleDateString()}.</p>`;
+  // ========================================
+  // CONFIGURE MESSAGE BASED ON REMINDER TYPE
+  // ========================================
+  let subject, headerColor, headerText, greeting, mainMessage, urgencyBox, actionText;
+  
+  if (reminderType === 'before_due') {
+    // BEFORE DUE: Gentle heads-up
+    const daysText = Math.abs(daysUntilDue) === 1 ? 'day' : 'days';
+    subject = `Upcoming Payment: Invoice #${invoiceNumber}`;
+    headerColor = '#059669'; // Green
+    headerText = '💚 Friendly Reminder';
+    greeting = `Hi ${clientName},`;
+    mainMessage = `Just a friendly heads-up that invoice #${invoiceNumber} from <strong>${companyName}</strong> is due in <strong>${Math.abs(daysUntilDue)} ${daysText}</strong>.`;
+    urgencyBox = `
+      <div style="background-color: #d1fae5; border-left: 4px solid #059669; padding: 16px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #047857; font-weight: 600;">📅 Due in ${Math.abs(daysUntilDue)} ${daysText} (${formattedDueDate})</p>
+      </div>
+    `;
+    actionText = 'We wanted to give you a heads-up so you can plan your payment ahead of time.';
+    
+  } else if (reminderType === 'on_due') {
+    // ON DUE DATE: Polite reminder
+    subject = `Payment Due Today: Invoice #${invoiceNumber}`;
+    headerColor = '#f59e0b'; // Amber
+    headerText = '⏰ Payment Due Today';
+    greeting = `Hi ${clientName},`;
+    mainMessage = `This is a reminder that invoice #${invoiceNumber} from <strong>${companyName}</strong> is <strong>due today</strong>.`;
+    urgencyBox = `
+      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #92400e; font-weight: 600;">⚠️ Due Date: Today (${formattedDueDate})</p>
+      </div>
+    `;
+    actionText = 'Please arrange payment today to avoid any late fees or service interruptions.';
+    
+  } else {
+    // AFTER DUE: More urgent tone
+    const daysText = daysOverdue === 1 ? 'day' : 'days';
+    subject = `Payment Overdue: Invoice #${invoiceNumber}`;
+    headerColor = '#dc2626'; // Red
+    headerText = '🔴 Payment Overdue';
+    greeting = `Hi ${clientName},`;
+    mainMessage = `Invoice #${invoiceNumber} from <strong>${companyName}</strong> is now <strong>${daysOverdue} ${daysText} overdue</strong>.`;
+    urgencyBox = `
+      <div style="background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 16px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #991b1b; font-weight: 600;">❗ ${daysOverdue} ${daysText} overdue (Due: ${formattedDueDate})</p>
+      </div>
+    `;
+    actionText = 'Please arrange payment as soon as possible to avoid any further complications.';
+  }
 
+  // ========================================
+  // CUSTOM PAYMENT INSTRUCTIONS (if provided)
+  // ========================================
+  let customPaymentSection = '';
+  if (customMessage?.paymentInstructions) {
+    customPaymentSection = `
+      <div style="background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 16px; margin: 24px 0; border-radius: 4px;">
+        <p style="margin: 0 0 8px 0; color: #1e40af; font-weight: 600; font-size: 14px;">💳 Payment Methods</p>
+        <p style="margin: 0; color: #1e3a8a; font-size: 14px; white-space: pre-line; line-height: 1.6;">${customMessage.paymentInstructions}</p>
+      </div>
+    `;
+  }
+
+  let customContactSection = '';
+  if (customMessage?.contactInfo) {
+    customContactSection = `
+      <p style="margin: 20px 0 0 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
+        <strong style="color: #374151;">Questions?</strong> ${customMessage.contactInfo}
+      </p>
+    `;
+  }
+
+  // ========================================
+  // EMAIL HTML TEMPLATE
+  // ========================================
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background-color: #2563eb; padding: 20px; text-align: center;">
-        <h1 style="color: white; margin: 0;">Payment Reminder</h1>
-      </div>
-      
-      <div style="padding: 30px; background-color: #f9fafb;">
-        <p>Hi ${clientName},</p>
-        
-        <p>This is a friendly reminder about your outstanding invoice from <strong>${companyName || 'us'}</strong>.</p>
-        
-        ${urgencyText}
-        
-        <div style="background-color: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-          <table style="width: 100%;">
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280;">Invoice Number:</td>
-              <td style="padding: 8px 0; font-weight: bold; text-align: right;">#${invoiceNumber}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280;">Amount Due:</td>
-              <td style="padding: 8px 0; font-weight: bold; text-align: right; color: #2563eb; font-size: 18px;">${symbol} ${total.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 0; color: #6b7280;">Due Date:</td>
-              <td style="padding: 8px 0; font-weight: bold; text-align: right;">${new Date(dueDate).toLocaleDateString()}</td>
-            </tr>
-          </table>
-        </div>
-        
-        <p>Please arrange payment at your earliest convenience. If you've already made the payment, kindly disregard this reminder.</p>
-        
-        <p>If you have any questions about this invoice, please don't hesitate to reach out.</p>
-        
-        <p style="margin-top: 30px;">Thank you for your business!</p>
-        
-        <p style="color: #6b7280; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-          This is an automated reminder sent via BillKazi.
-        </p>
-      </div>
-    </div>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6; padding: 20px 16px;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 100%;">
+              
+              <!-- HEADER -->
+              <tr>
+                <td style="background-color: ${headerColor}; padding: 24px; text-align: center;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">${headerText}</h1>
+                </td>
+              </tr>
+
+              <!-- BODY -->
+              <tr>
+                <td style="padding: 32px 24px;">
+                  <p style="margin: 0 0 16px 0; color: #111827; font-size: 16px; line-height: 1.6;">${greeting}</p>
+                  
+                  <p style="margin: 0 0 20px 0; color: #374151; font-size: 15px; line-height: 1.6;">${mainMessage}</p>
+                  
+                  ${urgencyBox}
+                  
+                  <!-- INVOICE DETAILS CARD -->
+                  <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 24px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Invoice Number</td>
+                        <td style="padding: 8px 0; text-align: right; color: #111827; font-weight: 600; font-size: 14px;">#${invoiceNumber}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Amount Due</td>
+                        <td style="padding: 8px 0; text-align: right; color: #2563eb; font-weight: 700; font-size: 18px;">${symbol} ${formattedTotal}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Due Date</td>
+                        <td style="padding: 8px 0; text-align: right; color: #111827; font-weight: 600; font-size: 14px;">${formattedDueDate}</td>
+                      </tr>
+                    </table>
+                  </div>
+                  
+                  <p style="margin: 24px 0 16px 0; color: #374151; font-size: 15px; line-height: 1.6;">${actionText}</p>
+                  
+                  ${customPaymentSection}
+                  
+                  <p style="margin: 16px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">If you've already made this payment, please disregard this reminder.</p>
+                  
+                  ${customContactSection}
+                  
+                  <p style="margin: 32px 0 0 0; color: #374151; font-size: 15px; line-height: 1.6;">Thank you for your business!</p>
+                  <p style="margin: 4px 0 0 0; color: #6b7280; font-size: 14px;"><strong>${companyName}</strong></p>
+                </td>
+              </tr>
+
+              <!-- FOOTER -->
+              <tr>
+                <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                  <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
+                    This is an automated payment reminder sent via <span style="color: #2563eb; font-weight: 600;">BillKazi</span>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
   `;
   
   return sendEmail(clientEmail, subject, html);

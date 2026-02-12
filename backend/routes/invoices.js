@@ -9,6 +9,157 @@ const crypto = require('crypto');
 const { sendInvoiceEmail } = require('../services/emailService');
 const { generateInvoiceNumber } = require('../utils/invoiceNumberGenerator'); 
 
+// 🚀 PAYMENT REMINDERS: Get reminder history for an invoice
+router.get('/:id/reminders', auth, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      userId: req.userId
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Calculate next scheduled reminder
+    let nextReminder = null;
+    const now = new Date();
+    const dueDate = new Date(invoice.dueDate);
+
+    if (invoice.reminderSettings?.enabled && invoice.status !== 'paid') {
+      const daysUntilDue = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+      
+      // Check before due reminders
+      if (invoice.reminderSettings.beforeDue) {
+        for (const days of invoice.reminderSettings.beforeDue.sort((a, b) => b - a)) {
+          const alreadySent = invoice.remindersSent.some(
+            r => r.type === 'before_due' && r.daysOffset === -days
+          );
+          if (!alreadySent && daysUntilDue <= days && daysUntilDue > 0) {
+            nextReminder = {
+              type: 'before_due',
+              daysOffset: -days,
+              scheduledDate: new Date(dueDate.getTime() - days * 24 * 60 * 60 * 1000),
+              description: `${days} days before due date`
+            };
+            break;
+          }
+        }
+      }
+
+      // Check on due reminder
+      if (!nextReminder && invoice.reminderSettings.onDue) {
+        const alreadySent = invoice.remindersSent.some(
+          r => r.type === 'on_due' && r.daysOffset === 0
+        );
+        if (!alreadySent && daysUntilDue === 0) {
+          nextReminder = {
+            type: 'on_due',
+            daysOffset: 0,
+            scheduledDate: dueDate,
+            description: 'On due date'
+          };
+        }
+      }
+
+      // Check after due reminders
+      if (!nextReminder && invoice.reminderSettings.afterDue) {
+        for (const days of invoice.reminderSettings.afterDue.sort((a, b) => a - b)) {
+          const alreadySent = invoice.remindersSent.some(
+            r => r.type === 'after_due' && r.daysOffset === days
+          );
+          if (!alreadySent && daysUntilDue < 0 && Math.abs(daysUntilDue) <= days) {
+            nextReminder = {
+              type: 'after_due',
+              daysOffset: days,
+              scheduledDate: new Date(dueDate.getTime() + days * 24 * 60 * 60 * 1000),
+              description: `${days} days after due date`
+            };
+            break;
+          }
+        }
+      }
+    }
+
+    res.json({
+      reminderSettings: invoice.reminderSettings,
+      remindersSent: invoice.remindersSent,
+      nextReminder
+    });
+  } catch (error) {
+    console.error('Get reminders error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 🚀 PAYMENT REMINDERS: Update reminder settings for an invoice
+router.patch('/:id/reminders', auth, async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid invoice ID format' });
+    }
+
+    const { enabled, beforeDue, onDue, afterDue } = req.body;
+
+    // Find invoice
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      userId: req.userId
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Get user to check plan
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // FREE TIER VALIDATION: Only allow onDue reminder
+    if (user.plan === 'free') {
+      if (enabled && (beforeDue?.length > 0 || afterDue?.length > 0)) {
+        return res.status(403).json({
+          message: 'Free plan only allows reminder on due date. Upgrade to Pro for unlimited reminders.',
+          upgradePath: '/settings/billing'
+        });
+      }
+
+      // Free users can only enable onDue
+      invoice.reminderSettings = {
+        enabled: enabled || false,
+        beforeDue: [],
+        onDue: onDue || false,
+        afterDue: []
+      };
+    } else {
+      // PRO/ENTERPRISE: Allow all reminder types
+      invoice.reminderSettings = {
+        enabled: enabled !== undefined ? enabled : invoice.reminderSettings?.enabled || false,
+        beforeDue: beforeDue || invoice.reminderSettings?.beforeDue || [],
+        onDue: onDue !== undefined ? onDue : invoice.reminderSettings?.onDue || false,
+        afterDue: afterDue || invoice.reminderSettings?.afterDue || []
+      };
+    }
+
+    await invoice.save();
+
+    res.json({
+      message: 'Reminder settings updated',
+      reminderSettings: invoice.reminderSettings,
+      plan: user.plan
+    });
+  } catch (error) {
+    console.error('Update reminders error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Export invoices as CSV (Basic)
 router.get('/export/csv', auth, async (req, res) => {
   try {
@@ -405,6 +556,11 @@ router.get('/public/:shareToken', async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
+    // 🚀 ANALYTICS: Increment view count
+    invoice.viewCount = (invoice.viewCount || 0) + 1;
+    invoice.lastViewedAt = new Date();
+    await invoice.save();
+
     res.json(invoice);
   } catch (error) {
     console.error('Get public invoice error:', error);
@@ -574,7 +730,9 @@ router.post('/', auth, async (req, res) => {
       clientId,
       items,
       currency,
-      taxRate
+      taxRate,
+      // 🚀 PAYMENT REMINDERS: Accept reminder settings
+      reminderSettings
     } = req.body;
 
     if (!clientName?.trim()) {
@@ -616,6 +774,16 @@ router.post('/', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // 🚀 PAYMENT REMINDERS: Validate free tier limits
+    if (reminderSettings?.enabled && user.plan === 'free') {
+      if (reminderSettings.beforeDue?.length > 0 || reminderSettings.afterDue?.length > 0) {
+        return res.status(403).json({
+          message: 'Free plan only allows reminder on due date. Upgrade to Pro for unlimited reminders.',
+          upgradePath: '/settings/billing'
+        });
+      }
+    }
+
     const invoiceNumber = await generateInvoiceNumber(user);
     console.log('✅ Generated invoice number:', invoiceNumber);
 
@@ -626,7 +794,14 @@ router.post('/', auth, async (req, res) => {
       invoiceNumber: invoiceNumber, 
       clientName: clientName.trim(),
       clientEmail: clientEmail.trim().toLowerCase(),
-      shareToken: crypto.randomBytes(16).toString('hex')
+      shareToken: crypto.randomBytes(16).toString('hex'),
+      // 🚀 PAYMENT REMINDERS: Save reminder settings
+      reminderSettings: reminderSettings || {
+        enabled: false,
+        beforeDue: [],
+        onDue: false,
+        afterDue: []
+      }
     });
 
     await invoice.save();

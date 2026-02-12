@@ -325,7 +325,7 @@ const LandingPage = () => {
                 Everything you need, nothing you don't
               </h2>
               <p className="text-lg text-gray-600 mb-8">
-                Simple, powerful tools designed for freelancers and small businesses in Africa.
+                Simple, powerful tools for freelancers, consultants, and small businesses across Africa.
               </p>
               <div className="space-y-6">
                 <div className="flex gap-4">

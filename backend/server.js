@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
+const cron = require('node-cron');
 
 // Validate required environment variables
 const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
@@ -116,68 +117,211 @@ mongoose.connect(process.env.MONGODB_URI)
     process.exit(1);
   });
 
-// Payment Reminder Scheduler
+// ============================================================
+// 🔔 ENHANCED PAYMENT REMINDER SYSTEM
+// ============================================================
+
 const Invoice = require('./models/invoice');
 const User = require('./models/user');
 const { sendPaymentReminderEmail } = require('./services/emailService');
 
-const sendPaymentReminders = async () => {
-  console.log('🔔 Running payment reminder check...');
+/**
+ * Main reminder check function
+ * Runs every 6 hours to check for invoices needing reminders
+ */
+const checkAndSendReminders = async () => {
+  console.log('🔔 Running payment reminder check...', new Date().toISOString());
   
   try {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0); // Start of today
     
-    const overdueInvoices = await Invoice.find({
+    // Find all unpaid invoices with reminders enabled
+    const invoices = await Invoice.find({
       status: 'unpaid',
-      reminderEnabled: true,
-      dueDate: { $lte: today },
-      remindersSent: { $lt: 3 },
-      $or: [
-        { lastReminderSent: null },
-        { lastReminderSent: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) } }
-      ]
-    }).populate('user', 'companyName');
+      'reminderSettings.enabled': true
+    }).populate('user', 'companyName email plan');
 
-    console.log(`📧 Found ${overdueInvoices.length} invoices needing reminders`);
+    if (invoices.length === 0) {
+      console.log('📭 No invoices with reminders enabled');
+      return;
+    }
 
-    for (const invoice of overdueInvoices) {
-      const daysOverdue = Math.floor((today - new Date(invoice.dueDate)) / (1000 * 60 * 60 * 24));
-      
-      const invoiceData = {
-        invoiceNumber: invoice.invoiceNumber,
-        clientName: invoice.clientName,
-        total: invoice.total,
-        currency: invoice.currency,
-        dueDate: invoice.dueDate,
-        daysOverdue
-      };
+    console.log(`📊 Checking ${invoices.length} invoices with reminders enabled`);
 
-      const companyName = invoice.user?.companyName || '';
-      
-      const sent = await sendPaymentReminderEmail(
-        invoice.clientEmail,
-        invoiceData,
-        companyName
-      );
+    let remindersSent = 0;
+    let remindersSkipped = 0;
 
-      if (sent) {
-        invoice.remindersSent += 1;
-        invoice.lastReminderSent = new Date();
-        await invoice.save();
-        console.log(`✅ Reminder sent for invoice #${invoice.invoiceNumber}`);
-      } else {
-        console.log(`❌ Failed to send reminder for invoice #${invoice.invoiceNumber}`);
+    for (const invoice of invoices) {
+      try {
+        const dueDate = new Date(invoice.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        
+        const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+        const daysOverdue = -daysUntilDue; // Positive if overdue
+        
+        let reminderType = null;
+        let shouldSend = false;
+
+        // Check user's plan for limits
+        const userPlan = invoice.user?.plan || 'free';
+        const isFreeUser = userPlan === 'free';
+
+        // FREE PLAN LIMIT: Only 1 reminder (on due date)
+        if (isFreeUser && invoice.remindersSent.length >= 1) {
+          remindersSkipped++;
+          continue;
+        }
+
+        // ========================================
+        // 1. BEFORE DUE REMINDERS
+        // ========================================
+        if (daysUntilDue > 0) {
+          const beforeDueDays = invoice.reminderSettings.beforeDue || [];
+          
+          // Check if today matches any of the configured "before due" days
+          if (beforeDueDays.includes(daysUntilDue)) {
+            if (!hasReminderBeenSent(invoice, 'before_due', -daysUntilDue)) {
+              reminderType = 'before_due';
+              shouldSend = true;
+            }
+          }
+        }
+        
+        // ========================================
+        // 2. ON DUE DATE REMINDER
+        // ========================================
+        else if (daysUntilDue === 0 && invoice.reminderSettings.onDue) {
+          if (!hasReminderBeenSent(invoice, 'on_due', 0)) {
+            reminderType = 'on_due';
+            shouldSend = true;
+          }
+        }
+        
+        // ========================================
+        // 3. AFTER DUE REMINDERS (OVERDUE)
+        // ========================================
+        else if (daysOverdue > 0) {
+          const afterDueDays = invoice.reminderSettings.afterDue || [];
+          
+          // Check if today matches any of the configured "after due" days
+          if (afterDueDays.includes(daysOverdue)) {
+            if (!hasReminderBeenSent(invoice, 'after_due', daysOverdue)) {
+              reminderType = 'after_due';
+              shouldSend = true;
+            }
+          }
+        }
+
+        // ========================================
+        // SEND REMINDER
+        // ========================================
+        if (shouldSend && reminderType) {
+          const invoiceData = {
+            invoiceNumber: invoice.invoiceNumber,
+            clientName: invoice.clientName,
+            clientEmail: invoice.clientEmail,
+            total: invoice.total,
+            currency: invoice.currency,
+            dueDate: invoice.dueDate,
+            daysUntilDue,
+            daysOverdue: daysOverdue > 0 ? daysOverdue : 0,
+            reminderType,
+            // ADD: Custom message fields
+            customMessage: invoice.customReminderMessage || {}
+          };
+
+          const companyName = invoice.user?.companyName || 'BillKazi User';
+          
+          // Calculate daysOffset for tracking
+          let daysOffset = 0;
+          if (reminderType === 'before_due') {
+            daysOffset = -daysUntilDue;
+          } else if (reminderType === 'on_due') {
+            daysOffset = 0;
+          } else if (reminderType === 'after_due') {
+            daysOffset = daysOverdue;
+          }
+          
+          // Send email
+          const sent = await sendPaymentReminderEmail(
+            invoice.clientEmail,
+            invoiceData,
+            companyName,
+            reminderType
+          );
+
+          if (sent) {
+            // Track the reminder
+            invoice.remindersSent.push({
+              type: reminderType,
+              daysOffset: daysOffset,
+              sentAt: new Date(),
+              status: 'sent'
+            });
+            
+            await invoice.save();
+            
+            remindersSent++;
+            console.log(`✅ Sent ${reminderType} (${daysOffset > 0 ? '+' : ''}${daysOffset} days) reminder for invoice #${invoice.invoiceNumber}`);
+          } else {
+            // Log failed reminder
+            invoice.remindersSent.push({
+              type: reminderType,
+              daysOffset: daysOffset,
+              sentAt: new Date(),
+              status: 'failed',
+              error: 'Email sending failed'
+            });
+            
+            await invoice.save();
+            console.log(`❌ Failed to send ${reminderType} reminder for invoice #${invoice.invoiceNumber}`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error processing invoice #${invoice.invoiceNumber}:`, error.message);
       }
     }
+
+    console.log(`✅ Reminder check complete: ${remindersSent} sent, ${remindersSkipped} skipped`);
+    
   } catch (error) {
-    console.error('❌ Error sending payment reminders:', error);
+    console.error('❌ Error in checkAndSendReminders:', error);
   }
 };
 
+/**
+ * Helper function to check if a specific reminder type has been sent
+ * @param {Object} invoice - The invoice document
+ * @param {String} reminderType - 'before_due', 'on_due', or 'after_due'
+ * @param {Number} daysOffset - Days offset (e.g., -7, 0, 7)
+ */
+function hasReminderBeenSent(invoice, reminderType, daysOffset) {
+  return invoice.remindersSent.some(
+    reminder => 
+      reminder.type === reminderType && 
+      reminder.daysOffset === daysOffset &&
+      reminder.status === 'sent'
+  );
+}
+
+/**
+ * Start the reminder scheduler
+ * Runs every 6 hours
+ */
 const startReminderScheduler = () => {
-  setInterval(sendPaymentReminders, 6 * 60 * 60 * 1000);
-  console.log('✅ Payment reminder scheduler started (runs every 6 hours)');
+  // Schedule: Run every 6 hours (at 00:00, 06:00, 12:00, 18:00)
+  cron.schedule('0 */6 * * *', () => {
+    checkAndSendReminders();
+  });
+
+  console.log('✅ Payment reminder scheduler started (runs every 6 hours at 00:00, 06:00, 12:00, 18:00)');
+  
+  // Optional: Run once on startup (for testing)
+  if (process.env.RUN_REMINDERS_ON_START === 'true') {
+    console.log('🔄 Running initial reminder check on startup...');
+    setTimeout(checkAndSendReminders, 5000); // Wait 5 seconds after startup
+  }
 };
 
 // Graceful shutdown

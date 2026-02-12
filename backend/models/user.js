@@ -80,6 +80,35 @@ const userSchema = new mongoose.Schema({
     enum: ['free', 'pro', 'enterprise'],
     default: 'free'
   },
+  // 🚀 PAYMENT REMINDERS: Subscription tracking
+  subscriptionStatus: {
+    type: String,
+    enum: ['active', 'cancelled', 'expired', 'trial'],
+    default: 'active'
+  },
+  subscriptionStartDate: {
+    type: Date,
+    default: null
+  },
+  subscriptionEndDate: {
+    type: Date,
+    default: null
+  },
+  // 🚀 PAYMENT REMINDERS: Usage limits for free tier
+  monthlyRemindersSent: {
+    type: Number,
+    default: 0
+  },
+  reminderResetDate: {
+    type: Date,
+    default: () => {
+      const date = new Date();
+      date.setMonth(date.getMonth() + 1);
+      date.setDate(1);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+  },
   invoiceCounters: {
     type: Map,
     of: Number,
@@ -115,6 +144,35 @@ userSchema.methods.toJSON = function() {
   const user = this.toObject();
   delete user.password;
   return user;
+};
+
+// 🚀 PAYMENT REMINDERS: Helper method to check if user can send reminders
+userSchema.methods.canSendReminder = function() {
+  // Pro and Enterprise users have unlimited reminders
+  if (this.plan === 'pro' || this.plan === 'enterprise') {
+    return true;
+  }
+  
+  // Free users: check monthly limit (10 reminders/month)
+  const FREE_MONTHLY_LIMIT = 10;
+  
+  // Reset counter if we've passed the reset date
+  if (new Date() >= this.reminderResetDate) {
+    this.monthlyRemindersSent = 0;
+    const nextResetDate = new Date();
+    nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+    nextResetDate.setDate(1);
+    nextResetDate.setHours(0, 0, 0, 0);
+    this.reminderResetDate = nextResetDate;
+  }
+  
+  return this.monthlyRemindersSent < FREE_MONTHLY_LIMIT;
+};
+
+// 🚀 PAYMENT REMINDERS: Helper method to increment reminder count
+userSchema.methods.incrementReminderCount = async function() {
+  this.monthlyRemindersSent += 1;
+  await this.save();
 };
 
 module.exports = mongoose.model('User', userSchema);

@@ -43,32 +43,32 @@ const invoiceSchema = new mongoose.Schema(
       required: true,
     },
     items: [
-        {
-          description: {
-            type: String,
-            required: true,
-          },
-          quantity: {
-            type: Number,
-            required: true,
-            min: 1,
-          },
-          unitPrice: {
-            type: Number,
-            required: true,
-            min: 0,
-          },
-          productId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Product',
-            default: null,
-          },
-          taxable: {
-            type: Boolean,
-            default: true, // Default to taxable
-          },
+      {
+        description: {
+          type: String,
+          required: true,
         },
-      ],
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+        unitPrice: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Product',
+          default: null,
+        },
+        taxable: {
+          type: Boolean,
+          default: true, // Default to taxable
+        },
+      },
+    ],
     subtotal: {
       type: Number,
       required: true,
@@ -144,6 +144,75 @@ const invoiceSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
     },
+    // 🚀 PAYMENT REMINDERS: Settings for automated email reminders
+    reminderSettings: {
+      enabled: {
+        type: Boolean,
+        default: false,
+      },
+      beforeDue: {
+        type: [Number], // Days before due date [3, 7]
+        default: [],
+      },
+      onDue: {
+        type: Boolean,
+        default: false,
+      },
+      afterDue: {
+        type: [Number], // Days after due date [7, 14]
+        default: [],
+      },
+    },
+    // 🚀 PAYMENT REMINDERS: Custom message fields
+    customReminderMessage: {
+      paymentInstructions: {
+        type: String,
+        default: '',
+        maxlength: 500,
+      },
+      contactInfo: {
+        type: String,
+        default: '',
+        maxlength: 200,
+      },
+    },
+    // 🚀 PAYMENT REMINDERS: Track which reminders have been sent
+    remindersSent: [
+      {
+        type: {
+          type: String,
+          enum: ['before_due', 'on_due', 'after_due'],
+          required: true,
+        },
+        daysOffset: {
+          type: Number, // e.g., -7 (7 days before), 0 (on due), 7 (7 days after)
+          required: true,
+        },
+        sentAt: {
+          type: Date,
+          required: true,
+          default: Date.now,
+        },
+        status: {
+          type: String,
+          enum: ['sent', 'failed'],
+          default: 'sent',
+        },
+        error: {
+          type: String,
+          default: null,
+        },
+      },
+    ],
+    // 🚀 ANALYTICS: Track invoice views
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
+    lastViewedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -155,6 +224,8 @@ invoiceSchema.index({ userId: 1, status: 1 });
 invoiceSchema.index({ userId: 1, clientId: 1 });
 invoiceSchema.index({ invoiceNumber: 1 });
 invoiceSchema.index({ shareToken: 1 });
+// NEW: Index for reminder cron jobs
+invoiceSchema.index({ 'reminderSettings.enabled': 1, status: 1, dueDate: 1 });
 
 const Invoice = mongoose.model('Invoice', invoiceSchema);
 
