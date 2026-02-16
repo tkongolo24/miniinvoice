@@ -54,7 +54,7 @@ const sendPasswordResetEmail = async (email, token) => {
 };
 
 // ========================================
-// 🔔 ENHANCED PAYMENT REMINDER EMAIL
+// 🔔 SMART PAYMENT REMINDER EMAIL
 // ========================================
 const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, reminderType = 'after_due') => {
   const { invoiceNumber, clientName, total, currency, dueDate, daysUntilDue, daysOverdue, customMessage } = invoiceData;
@@ -62,20 +62,15 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, r
   const currencySymbols = { RWF: 'RWF', KES: 'KES', NGN: 'NGN', XOF: 'XOF', XAF: 'XAF', CFA: 'CFA', USD: '$', EUR: '€', GBP: '£' };
   const symbol = currencySymbols[currency] || currency;
   
-  // Format amount with commas
   const formattedTotal = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const formattedDueDate = new Date(dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   
-  // ========================================
-  // CONFIGURE MESSAGE BASED ON REMINDER TYPE
-  // ========================================
   let subject, headerColor, headerText, greeting, mainMessage, urgencyBox, actionText;
   
   if (reminderType === 'before_due') {
-    // BEFORE DUE: Gentle heads-up
     const daysText = Math.abs(daysUntilDue) === 1 ? 'day' : 'days';
     subject = `Upcoming Payment: Invoice #${invoiceNumber}`;
-    headerColor = '#059669'; // Green
+    headerColor = '#059669';
     headerText = '💚 Friendly Reminder';
     greeting = `Hi ${clientName},`;
     mainMessage = `Just a friendly heads-up that invoice #${invoiceNumber} from <strong>${companyName}</strong> is due in <strong>${Math.abs(daysUntilDue)} ${daysText}</strong>.`;
@@ -87,9 +82,8 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, r
     actionText = 'We wanted to give you a heads-up so you can plan your payment ahead of time.';
     
   } else if (reminderType === 'on_due') {
-    // ON DUE DATE: Polite reminder
     subject = `Payment Due Today: Invoice #${invoiceNumber}`;
-    headerColor = '#f59e0b'; // Amber
+    headerColor = '#f59e0b';
     headerText = '⏰ Payment Due Today';
     greeting = `Hi ${clientName},`;
     mainMessage = `This is a reminder that invoice #${invoiceNumber} from <strong>${companyName}</strong> is <strong>due today</strong>.`;
@@ -101,10 +95,9 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, r
     actionText = 'Please arrange payment today to avoid any late fees or service interruptions.';
     
   } else {
-    // AFTER DUE: More urgent tone
     const daysText = daysOverdue === 1 ? 'day' : 'days';
     subject = `Payment Overdue: Invoice #${invoiceNumber}`;
-    headerColor = '#dc2626'; // Red
+    headerColor = '#dc2626';
     headerText = '🔴 Payment Overdue';
     greeting = `Hi ${clientName},`;
     mainMessage = `Invoice #${invoiceNumber} from <strong>${companyName}</strong> is now <strong>${daysOverdue} ${daysText} overdue</strong>.`;
@@ -116,9 +109,6 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, r
     actionText = 'Please arrange payment as soon as possible to avoid any further complications.';
   }
 
-  // ========================================
-  // CUSTOM PAYMENT INSTRUCTIONS (if provided)
-  // ========================================
   let customPaymentSection = '';
   if (customMessage?.paymentInstructions) {
     customPaymentSection = `
@@ -138,9 +128,6 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, r
     `;
   }
 
-  // ========================================
-  // EMAIL HTML TEMPLATE
-  // ========================================
   const html = `
     <!DOCTYPE html>
     <html>
@@ -154,14 +141,12 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, r
           <td align="center">
             <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 100%;">
               
-              <!-- HEADER -->
               <tr>
                 <td style="background-color: ${headerColor}; padding: 24px; text-align: center;">
                   <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">${headerText}</h1>
                 </td>
               </tr>
 
-              <!-- BODY -->
               <tr>
                 <td style="padding: 32px 24px;">
                   <p style="margin: 0 0 16px 0; color: #111827; font-size: 16px; line-height: 1.6;">${greeting}</p>
@@ -170,7 +155,6 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, r
                   
                   ${urgencyBox}
                   
-                  <!-- INVOICE DETAILS CARD -->
                   <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 24px 0;">
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr>
@@ -201,7 +185,6 @@ const sendPaymentReminderEmail = async (clientEmail, invoiceData, companyName, r
                 </td>
               </tr>
 
-              <!-- FOOTER -->
               <tr>
                 <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
                   <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">
@@ -229,7 +212,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
   const companyName = companyData?.companyName || 'BillKazi User';
   const companyEmail = companyData?.contactEmail || '';
   
-  // Format amounts
   const formatAmount = (amount) => {
     return amount.toLocaleString('en-US', {
       minimumFractionDigits: 2,
@@ -237,11 +219,9 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
     });
   };
 
-  // Calculate net amount and VAT
   const netAmount = total / (1 + (taxRate || 18) / 100);
   const calculatedTax = total - netAmount;
   
-  // Build items table (SIMPLIFIED for mobile - removed rate column)
   const itemsHtml = items.map(item => `
     <tr>
       <td style="padding: 12px 8px; border-bottom: 1px solid #f3f4f6;">
@@ -276,7 +256,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
           <td align="center">
             <table class="container" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 100%;">
               
-              <!-- HEADER: Blue with Invoice # and Total -->
               <tr>
                 <td style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 24px;" class="padding">
                   <table width="100%" cellpadding="0" cellspacing="0">
@@ -294,7 +273,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
                 </td>
               </tr>
 
-              <!-- DUE DATE (if exists) -->
               ${dueDate ? `
               <tr>
                 <td style="background-color: #fef3c7; padding: 12px 24px;" class="padding">
@@ -305,7 +283,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
               </tr>
               ` : ''}
 
-              <!-- BILL TO & FROM (Compact) -->
               <tr>
                 <td style="padding: 24px;" class="padding">
                   <table width="100%" cellpadding="0" cellspacing="0">
@@ -324,7 +301,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
                 </td>
               </tr>
 
-              <!-- ITEMS TABLE (Simplified - 3 columns on desktop, 2 on mobile) -->
               <tr>
                 <td style="padding: 0 24px 20px 24px;" class="padding">
                   <table width="100%" cellpadding="0" cellspacing="0" class="items-table">
@@ -342,7 +318,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
                 </td>
               </tr>
 
-              <!-- TOTALS (Cleaner, less labels) -->
               <tr>
                 <td style="padding: 0 24px 24px 24px;" class="padding">
                   <table width="100%" cellpadding="0" cellspacing="0">
@@ -351,7 +326,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
                       <td style="width: 45%;">
                         
                         ${discount > 0 ? `
-                        <!-- Show discount if applicable -->
                         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 6px;">
                           <tr>
                             <td style="padding: 6px 0; color: #9ca3af; font-size: 13px;">Subtotal</td>
@@ -364,7 +338,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
                         </table>
                         ` : ''}
 
-                        <!-- Tax Breakdown (compact) -->
                         <table width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-top: 8px;">
                           <tr>
                             <td style="padding: 4px 0; color: #9ca3af; font-size: 12px;">Net (excl. VAT)</td>
@@ -376,7 +349,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
                           </tr>
                         </table>
 
-                        <!-- TOTAL (Big blue box) -->
                         <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border-radius: 8px; margin-top: 12px; padding: 12px;">
                           <tr>
                             <td style="color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; text-transform: uppercase;">Total</td>
@@ -390,7 +362,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
               </tr>
 
               ${shareUrl ? `
-              <!-- VIEW ONLINE BUTTON -->
               <tr>
                 <td style="padding: 0 24px 24px 24px; text-align: center;" class="padding">
                   <a href="${shareUrl}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">View Online</a>
@@ -398,7 +369,6 @@ const sendInvoiceEmail = async (clientEmail, invoiceData, companyData, shareUrl)
               </tr>
               ` : ''}
 
-              <!-- FOOTER -->
               <tr>
                 <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;" class="padding">
                   <p style="margin: 0; color: #6b7280; font-size: 13px;">Thank you for your business!</p>

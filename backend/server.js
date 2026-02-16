@@ -118,7 +118,7 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 // ============================================================
-// 🔔 ENHANCED PAYMENT REMINDER SYSTEM
+// 🔔 SMART AUTO-REMINDER SYSTEM
 // ============================================================
 
 const Invoice = require('./models/invoice');
@@ -126,15 +126,15 @@ const User = require('./models/user');
 const { sendPaymentReminderEmail } = require('./services/emailService');
 
 /**
- * Main reminder check function
- * Runs every 6 hours to check for invoices needing reminders
+ * Smart reminder check function
+ * Automatically calculates optimal reminder days based on invoice timeline
  */
 const checkAndSendReminders = async () => {
-  console.log('🔔 Running payment reminder check...', new Date().toISOString());
+  console.log('🔔 Running smart reminder check...', new Date().toISOString());
   
   try {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
+    today.setHours(0, 0, 0, 0);
     
     // Find all unpaid invoices with reminders enabled
     const invoices = await Invoice.find({
@@ -147,21 +147,28 @@ const checkAndSendReminders = async () => {
       return;
     }
 
-    console.log(`📊 Checking ${invoices.length} invoices with reminders enabled`);
+    console.log(`📊 Checking ${invoices.length} invoices with auto-reminders enabled`);
 
     let remindersSent = 0;
     let remindersSkipped = 0;
 
     for (const invoice of invoices) {
       try {
+        const issueDate = new Date(invoice.dateIssued);
+        issueDate.setHours(0, 0, 0, 0);
+        
         const dueDate = new Date(invoice.dueDate);
         dueDate.setHours(0, 0, 0, 0);
         
         const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
-        const daysOverdue = -daysUntilDue; // Positive if overdue
+        const daysOverdue = -daysUntilDue;
+        
+        // Calculate timeline length (issue to due)
+        const totalDaysUntilDue = Math.floor((dueDate - issueDate) / (1000 * 60 * 60 * 24));
         
         let reminderType = null;
         let shouldSend = false;
+        let daysOffset = 0;
 
         // Check user's plan for limits
         const userPlan = invoice.user?.plan || 'free';
@@ -174,43 +181,69 @@ const checkAndSendReminders = async () => {
         }
 
         // ========================================
-        // 1. BEFORE DUE REMINDERS
+        // SMART AUTO-CALCULATION LOGIC
         // ========================================
+        
+        // BEFORE DUE REMINDERS
         if (daysUntilDue > 0) {
-          const beforeDueDays = invoice.reminderSettings.beforeDue || [];
-          
-          // Check if today matches any of the configured "before due" days
-          if (beforeDueDays.includes(daysUntilDue)) {
-            if (!hasReminderBeenSent(invoice, 'before_due', -daysUntilDue)) {
+          // Long timeline (14+ days): 7 days + 3 days before
+          if (totalDaysUntilDue >= 14) {
+            if (daysUntilDue === 7) {
               reminderType = 'before_due';
+              daysOffset = -7;
+              shouldSend = true;
+            } else if (daysUntilDue === 3) {
+              reminderType = 'before_due';
+              daysOffset = -3;
               shouldSend = true;
             }
           }
+          // Medium timeline (7-13 days): 3 days + 1 day before
+          else if (totalDaysUntilDue >= 7) {
+            if (daysUntilDue === 3) {
+              reminderType = 'before_due';
+              daysOffset = -3;
+              shouldSend = true;
+            } else if (daysUntilDue === 1) {
+              reminderType = 'before_due';
+              daysOffset = -1;
+              shouldSend = true;
+            }
+          }
+          // Short timeline (3-6 days): 1 day before only
+          else if (totalDaysUntilDue >= 3) {
+            if (daysUntilDue === 1) {
+              reminderType = 'before_due';
+              daysOffset = -1;
+              shouldSend = true;
+            }
+          }
+          // Very short timeline (<3 days): no before reminders
         }
         
-        // ========================================
-        // 2. ON DUE DATE REMINDER
-        // ========================================
-        else if (daysUntilDue === 0 && invoice.reminderSettings.onDue) {
-          if (!hasReminderBeenSent(invoice, 'on_due', 0)) {
-            reminderType = 'on_due';
+        // ON DUE DATE REMINDER
+        else if (daysUntilDue === 0) {
+          reminderType = 'on_due';
+          daysOffset = 0;
+          shouldSend = true;
+        }
+        
+        // AFTER DUE REMINDERS (OVERDUE) - Always same schedule
+        else if (daysOverdue > 0) {
+          if (daysOverdue === 7) {
+            reminderType = 'after_due';
+            daysOffset = 7;
+            shouldSend = true;
+          } else if (daysOverdue === 14) {
+            reminderType = 'after_due';
+            daysOffset = 14;
             shouldSend = true;
           }
         }
-        
-        // ========================================
-        // 3. AFTER DUE REMINDERS (OVERDUE)
-        // ========================================
-        else if (daysOverdue > 0) {
-          const afterDueDays = invoice.reminderSettings.afterDue || [];
-          
-          // Check if today matches any of the configured "after due" days
-          if (afterDueDays.includes(daysOverdue)) {
-            if (!hasReminderBeenSent(invoice, 'after_due', daysOverdue)) {
-              reminderType = 'after_due';
-              shouldSend = true;
-            }
-          }
+
+        // Check if this specific reminder was already sent
+        if (shouldSend && hasReminderBeenSent(invoice, reminderType, daysOffset)) {
+          shouldSend = false;
         }
 
         // ========================================
@@ -224,24 +257,13 @@ const checkAndSendReminders = async () => {
             total: invoice.total,
             currency: invoice.currency,
             dueDate: invoice.dueDate,
-            daysUntilDue,
+            daysUntilDue: Math.abs(daysOffset),
             daysOverdue: daysOverdue > 0 ? daysOverdue : 0,
             reminderType,
-            // ADD: Custom message fields
             customMessage: invoice.customReminderMessage || {}
           };
 
           const companyName = invoice.user?.companyName || 'BillKazi User';
-          
-          // Calculate daysOffset for tracking
-          let daysOffset = 0;
-          if (reminderType === 'before_due') {
-            daysOffset = -daysUntilDue;
-          } else if (reminderType === 'on_due') {
-            daysOffset = 0;
-          } else if (reminderType === 'after_due') {
-            daysOffset = daysOverdue;
-          }
           
           // Send email
           const sent = await sendPaymentReminderEmail(
@@ -283,7 +305,7 @@ const checkAndSendReminders = async () => {
       }
     }
 
-    console.log(`✅ Reminder check complete: ${remindersSent} sent, ${remindersSkipped} skipped`);
+    console.log(`✅ Smart reminder check complete: ${remindersSent} sent, ${remindersSkipped} skipped`);
     
   } catch (error) {
     console.error('❌ Error in checkAndSendReminders:', error);
@@ -291,10 +313,7 @@ const checkAndSendReminders = async () => {
 };
 
 /**
- * Helper function to check if a specific reminder type has been sent
- * @param {Object} invoice - The invoice document
- * @param {String} reminderType - 'before_due', 'on_due', or 'after_due'
- * @param {Number} daysOffset - Days offset (e.g., -7, 0, 7)
+ * Helper function to check if a specific reminder was already sent
  */
 function hasReminderBeenSent(invoice, reminderType, daysOffset) {
   return invoice.remindersSent.some(
@@ -307,20 +326,20 @@ function hasReminderBeenSent(invoice, reminderType, daysOffset) {
 
 /**
  * Start the reminder scheduler
- * Runs every 6 hours
+ * Runs every 6 hours at 00:00, 06:00, 12:00, 18:00
  */
 const startReminderScheduler = () => {
-  // Schedule: Run every 6 hours (at 00:00, 06:00, 12:00, 18:00)
+  // Schedule: Run every 6 hours
   cron.schedule('0 */6 * * *', () => {
     checkAndSendReminders();
   });
 
-  console.log('✅ Payment reminder scheduler started (runs every 6 hours at 00:00, 06:00, 12:00, 18:00)');
+  console.log('✅ Smart reminder scheduler started (runs every 6 hours at 00:00, 06:00, 12:00, 18:00)');
   
-  // Optional: Run once on startup (for testing)
+  // Optional: Run once on startup for testing
   if (process.env.RUN_REMINDERS_ON_START === 'true') {
     console.log('🔄 Running initial reminder check on startup...');
-    setTimeout(checkAndSendReminders, 5000); // Wait 5 seconds after startup
+    setTimeout(checkAndSendReminders, 5000);
   }
 };
 

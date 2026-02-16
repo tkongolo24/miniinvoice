@@ -10,6 +10,7 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
+import ReminderSettings from './ReminderSettings';
 
 // PHASE 1 FIX: Split CFA into XOF and XAF
 const CURRENCIES = [
@@ -71,12 +72,9 @@ function CreateInvoice() {
   hasDiscount: false,
   discount: 0,
   discountType: 'percentage',
-  // 🔔 PAYMENT REMINDERS
   reminderSettings: {
     enabled: false,
-    beforeDue: [],
-    onDue: false,
-    afterDue: [],
+    mode: 'auto',
   },
   customReminderMessage: {
     paymentInstructions: '',
@@ -126,7 +124,7 @@ function CreateInvoice() {
         hasDiscount: invoice.hasDiscount || false,
         discount: invoice.discount || 0,
         discountType: invoice.discountType || 'percentage',
-        // 🔔 LOAD REMINDER SETTINGS
+        // LOAD REMINDER SETTINGS
       reminderSettings: invoice.reminderSettings || {
         enabled: false,
         beforeDue: [],
@@ -1140,23 +1138,23 @@ function CreateInvoice() {
             </div>
 
             {/* Notes */}
-            <div className="border-t border-gray-200 pt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows="3"
-                className="w-full px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Payment terms, thank you note, etc."
-              />
-            </div>
+              <div className="border-t border-gray-200 pt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  rows="3"
+                  className="w-full px-4 py-2.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Payment terms, thank you note, etc."
+                />
+              </div>
 
-            {/*PAYMENT REMINDERS*/}
-            <ReminderSettings formData={formData} setFormData={setFormData} />
+              {/* PAYMENT REMINDERS */}
+              <ReminderSettings formData={formData} setFormData={setFormData} />
 
-            {/* Summary */}
-            <div className="border-t border-gray-200 pt-6">
+              {/* Summary */}
+              <div className="border-t border-gray-200 pt-6">
               <div className="bg-blue-50 p-4 sm:p-6 rounded-lg space-y-2 sm:space-y-3">
                 <div className="flex justify-between text-sm sm:text-base text-gray-700">
                   <span>Items Total (incl. VAT):</span>
