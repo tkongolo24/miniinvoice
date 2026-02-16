@@ -940,6 +940,40 @@ ${companySettings?.companyName || ''}`;
             </div>
           )}
 
+          {/* 🔔 PAYMENT REMINDERS - MOVED OUTSIDE NOTES CONDITION */}
+          {invoice.reminderSettings?.enabled && (
+            <div className="mt-6 sm:mt-8 pt-6 border-t">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">Payment Reminders</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  ✅ Automatic reminders enabled
+                </p>
+                
+                {invoice.remindersSent?.length > 0 ? (
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-gray-900 mb-2">Reminders Sent:</p>
+                    <div className="space-y-1">
+                      {invoice.remindersSent.map((reminder, i) => (
+                        <div key={i} className="text-sm text-gray-600 flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full ${
+                            reminder.status === 'sent' ? 'bg-green-500' : 'bg-red-500'
+                          }`}></span>
+                          <span className="capitalize">{reminder.type.replace(/_/g, ' ')}</span>
+                          <span className="text-gray-400">•</span>
+                          <span>{new Date(reminder.sentAt).toLocaleDateString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 italic mt-2">
+                    No reminders sent yet
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Invoice Footer */}
           {companySettings?.invoiceFooter && (
             <div className="mt-6 pt-6 border-t text-center">

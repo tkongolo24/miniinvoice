@@ -77,10 +77,10 @@ const userSchema = new mongoose.Schema({
   },
   plan: {
     type: String,
-    enum: ['free', 'pro', 'enterprise'],
+    enum: ['free', 'pro'],
     default: 'free'
   },
-  // 🚀 PAYMENT REMINDERS: Subscription tracking
+  // PAYMENT REMINDERS: Subscription tracking
   subscriptionStatus: {
     type: String,
     enum: ['active', 'cancelled', 'expired', 'trial'],
