@@ -2,6 +2,7 @@ import mixpanel from 'mixpanel-browser';
 import { Helmet } from 'react-helmet-async';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const LandingPage = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -10,6 +11,10 @@ const LandingPage = () => {
   // Track landing page view
   useEffect(() => {
     mixpanel.track('Landing Page Viewed');
+  }, []);
+
+  useEffect(() => {
+    document.title = 'BillKazi - Simple Invoicing for African Freelancers & SMEs';
   }, []);
 
   const handleSignUpClick = (e, location = 'hero') => {
@@ -238,7 +243,7 @@ const LandingPage = () => {
             <div className="bg-white rounded-2xl shadow-xl p-2 transform hover:scale-105 transition duration-300">
               <div className="bg-gray-100 rounded-xl overflow-hidden">
                 <img 
-                  src="/clients.jpeg" 
+                  src="/client-page.jpeg" 
                   alt="Client management interface"
                   className="w-full h-auto"
                 />
