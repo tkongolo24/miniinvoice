@@ -10,7 +10,6 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
-import ReminderSettings from './ReminderSettings';
 
 // PHASE 1 FIX: Split CFA into XOF and XAF
 const CURRENCIES = [
