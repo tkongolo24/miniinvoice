@@ -2,7 +2,6 @@ import mixpanel from 'mixpanel-browser';
 import { Helmet } from 'react-helmet-async';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 
 const LandingPage = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
