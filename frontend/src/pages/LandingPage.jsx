@@ -636,7 +636,6 @@ const LandingPage = () => {
               <div className="mb-6">
                 <span className="text-5xl font-bold">8,000</span>
                 <span className="text-blue-200 text-lg"> RWF/month</span>
-                <p className="text-blue-100 text-sm mt-1">~$6 USD</p>
               </div>
               <p className="text-blue-100 mb-8">
                 For growing businesses that need automation
