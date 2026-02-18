@@ -145,13 +145,13 @@ const LandingPage = () => {
             </div>
             
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight mb-6">
-              Invoice your clients.<br />
-              <span className="text-blue-600">Get paid faster.</span>
+              Get paid faster with<br />
+              <span className="text-blue-600">professional invoices.</span>
             </h1>
-            
+
             <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-              Create professional invoices in 30 seconds. Share via WhatsApp. Track payments. 
-              Support for RWF, KES, NGN, and more.
+              Create invoices in 30 seconds. Send automatic reminders. Never chase clients again. 
+              Built for African businesses with RWF, KES, NGN support.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
@@ -534,153 +534,178 @@ const LandingPage = () => {
               Simple, transparent pricing
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Start free. Upgrade when you need more. No hidden fees.
+              Start free. Upgrade when you need automation and unlimited clients.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            {/* Free */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-gray-300 transition duration-300 hover:shadow-lg">
-              <h3 className="font-bold text-xl text-gray-900 mb-2">Free</h3>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Plan */}
+            <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 hover:border-gray-300 transition duration-300 hover:shadow-lg">
+              <h3 className="font-bold text-2xl text-gray-900 mb-2">Free</h3>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">0</span>
-                <span className="text-gray-600 text-lg"> /month</span>
+                <span className="text-5xl font-bold text-gray-900">0</span>
+                <span className="text-gray-600 text-lg"> RWF/month</span>
               </div>
-              <p className="text-gray-600 mb-6">
-                Perfect for freelancers just getting started
+              <p className="text-gray-600 mb-8">
+                Perfect for freelancers getting started
               </p>
-              <ul className="space-y-3 text-sm text-gray-700 mb-8">
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              
+              <ul className="space-y-4 text-sm mb-10">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>5 invoices per month</span>
+                  <div>
+                    <span className="font-semibold text-gray-900">Unlimited invoices</span>
+                    <p className="text-gray-600 text-xs mt-0.5">Create as many as you need</p>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>PDF downloads</span>
+                  <div>
+                    <span className="font-semibold text-gray-900">Up to 5 clients</span>
+                    <p className="text-gray-600 text-xs mt-0.5">Manage your client database</p>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>WhatsApp sharing</span>
+                  <div>
+                    <span className="font-semibold text-gray-900">Up to 3 products</span>
+                    <p className="text-gray-600 text-xs mt-0.5">Save your services/products</p>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>Multi-currency support</span>
+                  <span className="text-gray-900">Multi-currency support</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-gray-900">PDF downloads & WhatsApp sharing</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-gray-900">Add your company logo</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-gray-900">Manual payment reminders</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-gray-500">No automatic reminders</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-gray-500">"Powered by BillKazi" footer</span>
                 </li>
               </ul>
+              
               <button
                 onClick={(e) => handleSignUpClick(e, 'pricing')}
                 className="block w-full text-center py-3 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition"
               >
-                Get started free
+                Start free
               </button>
             </div>
 
-            {/* Pro - Highlighted */}
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 sm:p-8 text-white shadow-2xl shadow-blue-600/30 relative transform scale-105 border-4 border-blue-500">
+            {/* Pro Plan - Highlighted */}
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-8 text-white shadow-2xl shadow-blue-600/30 relative transform scale-105 border-4 border-blue-500">
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                 <span className="bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 text-xs font-bold px-4 py-1.5 rounded-full shadow-lg">
                   MOST POPULAR
                 </span>
               </div>
-              <h3 className="font-bold text-xl mb-2">Pro</h3>
+              
+              <h3 className="font-bold text-2xl mb-2">Pro</h3>
               <div className="mb-6">
-                <span className="text-4xl font-bold">8,000</span>
+                <span className="text-5xl font-bold">8,000</span>
                 <span className="text-blue-200 text-lg"> RWF/month</span>
+                <p className="text-blue-100 text-sm mt-1">~$6 USD</p>
               </div>
-              <p className="text-blue-100 mb-6">
-                For active freelancers and consultants
+              <p className="text-blue-100 mb-8">
+                For growing businesses that need automation
               </p>
-              <ul className="space-y-3 text-sm text-blue-50 mb-8">
-                <li className="flex items-start gap-2">
+              
+              <ul className="space-y-4 text-sm mb-10">
+                <li className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-white flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span className="font-medium">Unlimited invoices</span>
+                  <div>
+                    <span className="font-semibold">Everything in Free, plus:</span>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-white flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-300 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>Automatic payment reminders</span>
+                  <div>
+                    <span className="font-semibold text-white">Unlimited clients & products</span>
+                    <p className="text-blue-100 text-xs mt-0.5">No limits on your growth</p>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-white flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-300 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>Custom branding (your logo)</span>
+                  <div>
+                    <span className="font-semibold text-white">Automatic payment reminders</span>
+                    <p className="text-blue-100 text-xs mt-0.5">Set it and forget it - we chase clients for you</p>
+                  </div>
                 </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-white flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-300 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>Receipt generation</span>
+                  <span className="text-white">Remove BillKazi branding</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-white flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-300 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>Priority email support</span>
+                  <span className="text-white">3 professional invoice templates</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-300 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-white">Recurring invoices</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-300 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-white">Advanced analytics & reports</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-amber-300 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-white">Priority email support</span>
                 </li>
               </ul>
+              
               <button
                 data-tally-open="J9ARDr"
                 data-tally-emoji-text="🎉"
                 data-tally-emoji-animation="wave"
                 className="block w-full text-center py-3 bg-white text-blue-600 rounded-lg text-base font-bold hover:bg-blue-50 transition shadow-lg"
-              >
-                Join Waitlist
-              </button>
-            </div>
-
-            {/* Business */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-gray-300 transition duration-300 hover:shadow-lg">
-              <h3 className="font-bold text-xl text-gray-900 mb-2">Business</h3>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">15,000</span>
-                <span className="text-gray-600 text-lg"> RWF/month</span>
-              </div>
-              <p className="text-gray-600 mb-6">
-                For teams and growing agencies
-              </p>
-              <ul className="space-y-3 text-sm text-gray-700 mb-8">
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium">Everything in Pro</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Up to 5 team members</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Advanced reporting</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Priority support</span>
-                </li>
-              </ul>
-              <button
-                data-tally-open="J9ARDr"
-                data-tally-emoji-text="🎉"
-                data-tally-emoji-animation="wave"
-                className="block w-full text-center py-3 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition"
               >
                 Join Waitlist
               </button>
